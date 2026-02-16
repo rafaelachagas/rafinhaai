@@ -16,8 +16,10 @@ export default function LoginPage() {
     const [error, setError] = useState<string | null>(null);
     const { isDark, toggleTheme } = useTheme();
     const router = useRouter();
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        setMounted(true);
         // Redirecionar se já estiver logado
         const checkUser = async () => {
             const { data: { session } } = await supabase.auth.getSession();
@@ -46,8 +48,11 @@ export default function LoginPage() {
         }
     };
 
+    // Avoid hydration mismatch by not rendering theme-dependent classes until mounted
+    const backgroundClass = !mounted ? 'bg-[#0A0113]' : (isDark ? 'bg-[#0A0113]' : 'bg-gray-50');
+
     return (
-        <div className={`min-h-screen flex items-center justify-center p-4 selection:bg-[#B42AF0]/30 overflow-hidden relative ${isDark ? 'bg-[#0A0113]' : 'bg-gray-50'} md:transition-colors md:duration-500`}>
+        <div className={`min-h-screen flex items-center justify-center p-4 selection:bg-[#B42AF0]/30 overflow-hidden relative ${backgroundClass} md:transition-colors md:duration-500`}>
             {/* Centered Highlight Glow Layer - Desktop only */}
             <div
                 className="pointer-events-none fixed inset-0 z-0 transition-opacity duration-1000 blur-[100px] hidden md:block"
@@ -77,9 +82,9 @@ export default function LoginPage() {
             </div>
 
             <div className="w-full max-w-md relative z-10">
-                <div className={`rounded-[2.5rem] p-8 md:p-10 shadow-xl md:shadow-2xl border md:transition-all md:duration-500 ${isDark
-                    ? 'bg-[#120222] border-white/10'
-                    : 'bg-white border-gray-100 shadow-[#B42AF0]/5'
+                <div className={`rounded-[2.5rem] p-8 md:p-10 shadow-xl md:shadow-2xl border md:transition-all md:duration-500 ${isDark && mounted
+                    ? 'bg-[#120222] border-white/10 text-white'
+                    : 'bg-white border-gray-100 text-gray-900'
                     } md:backdrop-blur-xl`}>
                     <div className="text-center mb-10">
                         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#B42AF0] to-[#7D1AB8] mb-6 shadow-lg shadow-[#B42AF0]/25">

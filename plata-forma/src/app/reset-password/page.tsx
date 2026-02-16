@@ -73,26 +73,26 @@ export default function ResetPasswordPage() {
                 {isDark ? <Sun size={20} /> : <Moon size={20} />}
             </button>
 
-            {/* Centered Highlight Glow Layer */}
+            {/* Centered Highlight Glow Layer - Desktop only */}
             <div
-                className="pointer-events-none fixed inset-0 z-0 transition-opacity duration-1000 blur-[100px]"
+                className="pointer-events-none fixed inset-0 z-0 transition-opacity duration-1000 blur-[100px] hidden md:block"
                 style={{
                     background: `radial-gradient(circle at center, ${isDark ? 'rgba(180, 42, 240, 0.15)' : 'rgba(180, 42, 240, 0.08)'
                         } 0%, transparent 70%)`
                 }}
             />
 
-            {/* Background Glows */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className={`absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-[120px] animate-pulse transition-colors duration-500 ${isDark ? 'bg-[#B42AF0]/10' : 'bg-[#B42AF0]/5'}`}></div>
-                <div className={`absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full blur-[120px] animate-pulse delay-700 transition-colors duration-500 ${isDark ? 'bg-[#7D1AB8]/10' : 'bg-[#7D1AB8]/5'}`}></div>
+            {/* Background Glows - Desktop only */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none hidden md:block">
+                <div className={`absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-[120px] animate-pulse transition-colors duration-500 will-change-[opacity,transform] ${isDark ? 'bg-[#B42AF0]/10' : 'bg-[#B42AF0]/5'}`}></div>
+                <div className={`absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full blur-[120px] animate-pulse delay-700 transition-colors duration-500 will-change-[opacity,transform] ${isDark ? 'bg-[#7D1AB8]/10' : 'bg-[#7D1AB8]/5'}`}></div>
             </div>
 
             <div className="w-full max-w-md relative z-10">
-                <div className={`backdrop-blur-xl rounded-[2.5rem] p-8 md:p-10 shadow-2xl border transition-all duration-500 ${isDark
+                <div className={`rounded-[2.5rem] p-8 md:p-10 shadow-2xl border transition-all duration-500 ${isDark
                     ? 'bg-white/[0.03] border-white/10'
                     : 'bg-white/70 border-white shadow-[#B42AF0]/5'
-                    }`}>
+                    } backdrop-blur-md md:backdrop-blur-xl`}>
                     <div className="text-center mb-10">
                         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#B42AF0] to-[#7D1AB8] mb-6 shadow-lg shadow-[#B42AF0]/25">
                             <Sparkles className="text-white w-8 h-8" />

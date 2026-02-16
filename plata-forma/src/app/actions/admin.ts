@@ -37,3 +37,17 @@ export async function createUser(email: string, full_name: string, password: str
         return { success: false, error: err.message || 'Erro inesperado' };
     }
 }
+
+export async function deleteUser(userId: string) {
+    try {
+        const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
+        if (error) {
+            return { success: false, error: error.message };
+        }
+
+        return { success: true };
+    } catch (err: any) {
+        return { success: false, error: err.message || 'Erro inesperado' };
+    }
+}

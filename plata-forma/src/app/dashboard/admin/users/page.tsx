@@ -19,9 +19,10 @@ import {
     Check,
     Lock,
     Eye,
-    EyeOff
+    EyeOff,
+    Trash2
 } from 'lucide-react';
-import { createUser } from '@/app/actions/admin';
+import { createUser, deleteUser } from '@/app/actions/admin';
 
 interface Profile {
     id: string;
@@ -89,6 +90,17 @@ export default function UserManagementPage() {
         setFormLoading(false);
     };
 
+    const handleDeleteUser = async (userId: string) => {
+        if (!confirm('Tem certeza que deseja excluir este usuário permanentemente? Esta ação não pode ser desfeita.')) return;
+
+        const result = await deleteUser(userId);
+        if (result.success) {
+            fetchUsers();
+        } else {
+            alert('Erro ao excluir usuário: ' + result.error);
+        }
+    };
+
     const updateRole = async (userId: string, newRole: UserRole) => {
         const { error } = await supabase
             .from('profiles')
@@ -139,6 +151,27 @@ export default function UserManagementPage() {
                         <UserPlus size={20} />
                         Novo Usuário
                     </button>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    {[
+                        { label: 'Total de Membros', value: users.length, icon: Users, color: 'text-blue-500' },
+                        { label: 'Administradores', value: users.filter(u => u.role === 'admin').length, icon: Shield, color: 'text-red-500' },
+                        { label: 'Novos Hoje', value: users.filter(u => new Date(u.created_at).toDateString() === new Date().toDateString()).length, icon: Calendar, color: 'text-green-500' },
+                    ].map((stat, i) => (
+                        <div key={i} className={`p-6 rounded-[2rem] border transition-all ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-gray-100 shadow-sm'}`}>
+                            <div className="flex items-center gap-4">
+                                <div className={`p-3 rounded-2xl ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
+                                    <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                                </div>
+                                <div>
+                                    <p className={`text-xs font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{stat.label}</p>
+                                    <h3 className="text-xl font-bold">{stat.value}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
 
                 {/* Filters & Search */}
@@ -192,7 +225,7 @@ export default function UserManagementPage() {
                                                 value={user.role}
                                                 onChange={(e) => updateRole(user.id, e.target.value as UserRole)}
                                                 className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border bg-transparent outline-none cursor-pointer transition-all ${user.role === 'admin'
-                                                    ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                                    ? 'bg-red-500/10 text-red-500 border-red-500/20'
                                                     : user.role === 'moderator'
                                                         ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
                                                         : 'bg-[#B42AF0]/10 text-[#B42AF0] border-[#B42AF0]/20'
@@ -210,9 +243,18 @@ export default function UserManagementPage() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <button className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}>
-                                                <MoreVertical size={18} />
-                                            </button>
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    onClick={() => handleDeleteUser(user.id)}
+                                                    className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-red-500/10 text-gray-400 hover:text-red-500' : 'hover:bg-red-50 text-gray-500 hover:text-red-600'}`}
+                                                    title="Excluir Usuário"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                                <button className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}>
+                                                    <MoreVertical size={18} />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

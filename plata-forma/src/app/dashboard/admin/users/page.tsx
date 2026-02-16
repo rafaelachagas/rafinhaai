@@ -22,7 +22,7 @@ import {
     EyeOff,
     Trash2
 } from 'lucide-react';
-import { createUser, deleteUser, updateUserRole } from '@/app/actions/admin';
+import { createUser, deleteUser, updateUserRole, updateUserProfile } from '@/app/actions/admin';
 
 interface Profile {
     id: string;
@@ -30,6 +30,7 @@ interface Profile {
     role: UserRole;
     created_at: string;
     full_name?: string;
+    cpf?: string;
 }
 
 export default function UserManagementPage() {
@@ -44,10 +45,17 @@ export default function UserManagementPage() {
     const [newUserName, setNewUserName] = useState('');
     const [newUserEmail, setNewUserEmail] = useState('');
     const [newUserPassword, setNewUserPassword] = useState('');
+    const [newUserCpf, setNewUserCpf] = useState('');
     const [newUserRole, setNewUserRole] = useState<UserRole>('user');
     const [showPassword, setShowPassword] = useState(false);
     const [formLoading, setFormLoading] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
+
+    // Edit states
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingUser, setEditingUser] = useState<Profile | null>(null);
+    const [editName, setEditName] = useState('');
+    const [editCpf, setEditCpf] = useState('');
 
     useEffect(() => {
         if (!themeLoading && (!profile || (profile.role !== 'admin' && profile.role !== 'moderator'))) {
@@ -75,17 +83,41 @@ export default function UserManagementPage() {
         setFormLoading(true);
         setFormError(null);
 
-        const result = await createUser(newUserEmail, newUserName, newUserPassword, newUserRole);
+        const result = await createUser(newUserEmail, newUserName, newUserPassword, newUserRole, newUserCpf);
 
         if (result.success) {
             setIsAddModalOpen(false);
             setNewUserName('');
             setNewUserEmail('');
             setNewUserPassword('');
+            setNewUserCpf('');
             setNewUserRole('user');
             fetchUsers();
         } else {
             setFormError(result.error || 'Erro ao criar usuário');
+        }
+        setFormLoading(false);
+    };
+
+    const handleEditClick = (user: Profile) => {
+        setEditingUser(user);
+        setEditName(user.full_name || '');
+        setEditCpf(user.cpf || '');
+        setIsEditModalOpen(true);
+    };
+
+    const handleUpdateProfile = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingUser || !profile) return;
+        setFormLoading(true);
+
+        const result = await updateUserProfile(editingUser.id, { full_name: editName, cpf: editCpf }, profile.id);
+
+        if (result.success) {
+            setIsEditModalOpen(false);
+            fetchUsers();
+        } else {
+            setFormError(result.error || 'Erro ao atualizar perfil');
         }
         setFormLoading(false);
     };
@@ -257,7 +289,11 @@ export default function UserManagementPage() {
                                                 >
                                                     <Trash2 size={18} />
                                                 </button>
-                                                <button className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}>
+                                                <button
+                                                    onClick={() => handleEditClick(user)}
+                                                    className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
+                                                    title="Editar Usuário"
+                                                >
                                                     <MoreVertical size={18} />
                                                 </button>
                                             </div>
@@ -290,6 +326,19 @@ export default function UserManagementPage() {
                         </div>
 
                         <form onSubmit={handleCreateUser} className="space-y-4">
+                            <div className="space-y-2">
+                                <label className={`text-xs font-semibold uppercase tracking-wider ml-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                    CPF
+                                </label>
+                                <input
+                                    type="text"
+                                    value={newUserCpf}
+                                    onChange={(e) => setNewUserCpf(e.target.value)}
+                                    className={`w-full px-4 py-3 rounded-xl border outline-none transition-all ${isDark ? 'bg-white/5 border-white/10 focus:border-[#B42AF0]/50' : 'bg-gray-50 border-gray-100 focus:border-[#B42AF0]/50'}`}
+                                    placeholder="Ex: 000.000.000-00"
+                                />
+                            </div>
+
                             <div className="space-y-2">
                                 <label className={`text-xs font-semibold uppercase tracking-wider ml-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                                     Nome Completo
@@ -367,6 +416,75 @@ export default function UserManagementPage() {
                             >
                                 {formLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><UserPlus size={18} /> Criar Usuário</>}
                             </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {isEditModalOpen && editingUser && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !formLoading && setIsEditModalOpen(false)} />
+                    <div className={`w-full max-md:max-w-md md:max-w-md relative rounded-[2.5rem] p-8 border animate-in zoom-in duration-300 ${isDark ? 'bg-[#120222] border-white/10' : 'bg-white border-gray-100 shadow-2xl'}`}>
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-xl font-bold">Editar Perfil</h2>
+                            <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-white/5 rounded-full" disabled={formLoading}>
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleUpdateProfile} className="space-y-4">
+                            <div className="p-4 rounded-2xl bg-[#B42AF0]/5 border border-[#B42AF0]/10 mb-4">
+                                <p className={`text-xs font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Editando:</p>
+                                <p className="font-bold text-sm truncate">{editingUser.email}</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className={`text-xs font-semibold uppercase tracking-wider ml-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                    CPF
+                                </label>
+                                <input
+                                    type="text"
+                                    value={editCpf}
+                                    onChange={(e) => setEditCpf(e.target.value)}
+                                    className={`w-full px-4 py-3 rounded-xl border outline-none transition-all ${isDark ? 'bg-white/5 border-white/10 focus:border-[#B42AF0]/50' : 'bg-gray-50 border-gray-100 focus:border-[#B42AF0]/50'}`}
+                                    placeholder="Ex: 000.000.000-00"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className={`text-xs font-semibold uppercase tracking-wider ml-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                    Nome Completo
+                                </label>
+                                <input
+                                    required
+                                    type="text"
+                                    value={editName}
+                                    onChange={(e) => setEditName(e.target.value)}
+                                    className={`w-full px-4 py-3 rounded-xl border outline-none transition-all ${isDark ? 'bg-white/5 border-white/10 focus:border-[#B42AF0]/50' : 'bg-gray-50 border-gray-100 focus:border-[#B42AF0]/50'}`}
+                                    placeholder="Ex: João Silva"
+                                />
+                            </div>
+
+                            {formError && (
+                                <p className="text-red-500 text-xs px-2">{formError}</p>
+                            )}
+
+                            <div className="flex gap-3 mt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditModalOpen(false)}
+                                    className={`flex-1 py-4 rounded-2xl font-bold transition-all ${isDark ? 'bg-white/5 hover:bg-white/10 text-gray-400' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={formLoading}
+                                    className="flex-[2] bg-[#B42AF0] hover:bg-[#A21FDC] py-4 rounded-2xl font-bold text-white transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                                >
+                                    {formLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Check size={18} /> Salvar Alterações</>}
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>

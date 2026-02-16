@@ -62,7 +62,7 @@ export async function updateUserRole(targetUserId: string, targetUserEmail: stri
     }
 }
 
-export async function createUser(email: string, full_name: string, password: string, role: UserRole) {
+export async function createUser(email: string, full_name: string, password: string, role: UserRole, cpf?: string) {
     try {
         // Bloquear criação de admin via painel
         if (role === 'admin') {
@@ -74,7 +74,7 @@ export async function createUser(email: string, full_name: string, password: str
             email,
             password,
             email_confirm: true,
-            user_metadata: { full_name }
+            user_metadata: { full_name, cpf }
         });
 
         if (authError) {
@@ -82,15 +82,54 @@ export async function createUser(email: string, full_name: string, password: str
         }
 
         if (data.user) {
-            // 2. Atualizar o cargo no perfil
+            // 2. Atualizar o cargo e dados no perfil
             const { error: profileError } = await supabaseAdmin
                 .from('profiles')
-                .update({ full_name, role })
+                .update({ full_name, role, cpf })
                 .eq('id', data.user.id);
 
             if (profileError) {
-                return { success: false, error: 'Usuário criado, mas erro ao definir cargo: ' + profileError.message };
+                return { success: false, error: 'Usuário criado, mas erro ao definir cargo/dados: ' + profileError.message };
             }
+        }
+
+        return { success: true };
+    } catch (err: any) {
+        return { success: false, error: err.message || 'Erro inesperado' };
+    }
+}
+
+export async function updateUserProfile(targetUserId: string, data: { full_name?: string, cpf?: string }, requesterId: string) {
+    try {
+        // 1. Verificar se o solicitante tem permissão (admin ou moderador)
+        const { data: requesterProfile } = await supabaseAdmin
+            .from('profiles')
+            .select('role')
+            .eq('id', requesterId)
+            .single();
+
+        if (!requesterProfile || (requesterProfile.role !== 'admin' && requesterProfile.role !== 'moderator')) {
+            return { success: false, error: 'Acesso negado.' };
+        }
+
+        // 2. Atualizar perfil
+        const { error: updateError } = await supabaseAdmin
+            .from('profiles')
+            .update(data)
+            .eq('id', targetUserId);
+
+        if (updateError) {
+            return { success: false, error: 'Erro ao atualizar perfil: ' + updateError.message };
+        }
+
+        // 3. Opcionalmente atualizar metadados do Auth (para manter sincronizado)
+        if (data.full_name || data.cpf) {
+            await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
+                user_metadata: {
+                    ...(data.full_name ? { full_name: data.full_name } : {}),
+                    ...(data.cpf ? { cpf: data.cpf } : {})
+                }
+            });
         }
 
         return { success: true };

@@ -17,7 +17,7 @@ interface NavItemProps {
 }
 
 const NavItem = ({ icon, label, active, onClick, href }: NavItemProps) => {
-    const baseClasses = "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm group transition-all";
+    const baseClasses = "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm group transition-all cursor-pointer";
     const activeClasses = "text-white bg-white/5";
     const inactiveClasses = "text-gray-400 hover:text-white hover:bg-white/5";
 
@@ -249,7 +249,7 @@ export default function Dashboard() {
                         <Link
                             key={i}
                             href={tool.link || '#'}
-                            className="group relative bg-white/5 border border-white/5 hover:border-white/20 rounded-3xl p-6 transition-all hover:-translate-y-1 overflow-hidden"
+                            className="group relative bg-white/5 border border-white/5 hover:border-white/20 rounded-3xl p-6 transition-all hover:-translate-y-1 overflow-hidden cursor-pointer"
                         >
                             {/* Subtle gradient hover effect */}
                             <div className="absolute inset-0 bg-gradient-to-br from-purple-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>

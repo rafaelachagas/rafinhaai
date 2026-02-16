@@ -72,19 +72,19 @@ export default function AdminDashboard() {
                 </div>
 
                 <nav className="flex-1 space-y-2">
-                    <Link href="/dashboard/admin" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm bg-white/5 text-white active">
+                    <Link href="/dashboard/admin" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm bg-white/5 text-white active cursor-pointer">
                         <LayoutDashboard size={20} />
                         <span>Resumo Geral</span>
                     </Link>
-                    <Link href="/dashboard/admin/users" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                    <Link href="/dashboard/admin/users" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer">
                         <Users size={20} />
                         <span>Gestão de Usuários</span>
                     </Link>
-                    <Link href="/dashboard/admin/stats" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                    <Link href="/dashboard/admin/stats" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer">
                         <BarChart3 size={20} />
                         <span>Métricas de Vendas</span>
                     </Link>
-                    <Link href="/dashboard/admin/settings" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                    <Link href="/dashboard/admin/settings" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer">
                         <Settings size={20} />
                         <span>Configurações</span>
                     </Link>
@@ -148,7 +148,7 @@ export default function AdminDashboard() {
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Link href="/dashboard/admin/users" className="group relative bg-white/5 border border-white/5 hover:border-red-500/20 rounded-3xl p-8 transition-all hover:-translate-y-1 overflow-hidden">
+                    <Link href="/dashboard/admin/users" className="group relative bg-white/5 border border-white/5 hover:border-red-500/20 rounded-3xl p-8 transition-all hover:-translate-y-1 overflow-hidden cursor-pointer">
                         <div className="absolute inset-0 bg-gradient-to-br from-red-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                         <div className="relative z-10">
                             <div className="w-14 h-14 rounded-2xl bg-red-500 flex items-center justify-center mb-6 shadow-lg shadow-red-500/20">
@@ -164,7 +164,7 @@ export default function AdminDashboard() {
                         </div>
                     </Link>
 
-                    <Link href="/dashboard/admin/settings" className="group relative bg-white/5 border border-white/5 hover:border-blue-500/20 rounded-3xl p-8 transition-all hover:-translate-y-1 overflow-hidden">
+                    <Link href="/dashboard/admin/settings" className="group relative bg-white/5 border border-white/5 hover:border-blue-500/20 rounded-3xl p-8 transition-all hover:-translate-y-1 overflow-hidden cursor-pointer">
                         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                         <div className="relative z-10">
                             <div className="w-14 h-14 rounded-2xl bg-blue-500 flex items-center justify-center mb-6 shadow-lg shadow-blue-500/20">

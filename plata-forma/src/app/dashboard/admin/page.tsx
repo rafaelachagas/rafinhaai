@@ -28,6 +28,7 @@ export default function AdminDashboard() {
     const router = useRouter();
     const { isDark, toggleTheme, profile, loading: themeLoading } = useTheme();
     const [loading, setLoading] = useState(true);
+    const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [stats, setStats] = useState({
         totalUsers: 0,
         activeToday: 0,
@@ -110,13 +111,48 @@ export default function AdminDashboard() {
                     </div>
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-3">
-                            <button onClick={toggleTheme} className={`p-2 rounded-xl border transition-colors ${isDark ? 'bg-white/5 border-white/10 text-gray-400 hover:text-white' : 'bg-gray-50 border-gray-200 text-gray-500 hover:text-gray-900'}`}>
+                            <button
+                                onClick={toggleTheme}
+                                className={`p-2 rounded-xl border transition-colors cursor-pointer ${isDark ? 'bg-white/5 border-white/10 text-gray-400 hover:text-white' : 'bg-gray-50 border-gray-200 text-gray-500 hover:text-gray-900'}`}
+                            >
                                 {isDark ? <Sun size={18} /> : <Moon size={18} />}
                             </button>
-                            <button className={`p-2 rounded-xl border transition-colors relative ${isDark ? 'bg-white/5 border-white/10 text-gray-400 hover:text-white' : 'bg-gray-50 border-gray-200 text-gray-500 hover:text-gray-900'}`}>
+                            <button className={`p-2 rounded-xl border transition-colors relative cursor-pointer ${isDark ? 'bg-white/5 border-white/10 text-gray-400 hover:text-white' : 'bg-gray-50 border-gray-200 text-gray-500 hover:text-gray-900'}`}>
                                 <Bell size={18} />
                                 <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-transparent"></span>
                             </button>
+                        </div>
+                        <div className="relative">
+                            <button
+                                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                                className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer"
+                            >
+                                <Users className="w-6 h-6 text-gray-400" />
+                            </button>
+
+                            {userMenuOpen && (
+                                <div className={`absolute right-0 mt-2 w-48 rounded-2xl border shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in duration-200 ${isDark ? 'bg-[#120222] border-white/10' : 'bg-white border-gray-100'}`}>
+                                    <div className="p-2 space-y-1">
+                                        <button
+                                            onClick={() => router.push('/dashboard/profile')}
+                                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors cursor-pointer ${isDark ? 'hover:bg-white/5 text-gray-300' : 'hover:bg-gray-50 text-gray-700'}`}
+                                        >
+                                            <ShieldCheck size={18} className="text-red-400" />
+                                            Meu Perfil
+                                        </button>
+                                        <button
+                                            onClick={async () => {
+                                                await supabase.auth.signOut();
+                                                router.push('/login');
+                                            }}
+                                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors cursor-pointer ${isDark ? 'hover:bg-red-500/10 text-red-400' : 'hover:bg-red-50 text-red-600'}`}
+                                        >
+                                            <LogOut size={18} />
+                                            Sair (Logout)
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </header>

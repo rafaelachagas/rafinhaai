@@ -79,7 +79,7 @@ export default function LoginPage() {
             <button
                 onClick={toggleTheme}
                 type="button"
-                className={`absolute top-6 right-6 p-3 rounded-2xl border transition-all duration-300 z-20 ${isDark
+                className={`absolute top-6 right-6 p-3 rounded-2xl border transition-all duration-300 z-20 cursor-pointer ${isDark
                     ? 'bg-white/5 border-white/10 text-[#B42AF0] hover:bg-white/10'
                     : 'bg-white border-gray-200 text-[#B42AF0] shadow-sm hover:shadow-md'
                     }`}

@@ -134,13 +134,6 @@ export default function Dashboard() {
 
                 <nav className="flex-1 space-y-2">
                     <NavItem icon={<LayoutDashboard size={20} />} label="Início" active href="/dashboard" />
-                    {isModerator && (
-                        <NavItem
-                            icon={<Users size={20} />}
-                            label="Gestão de Usuários"
-                            onClick={() => router.push('/dashboard/admin/users')}
-                        />
-                    )}
                     <NavItem icon={<MessageSquare size={20} />} label="Scripts AI" href="/dashboard/scripts" />
                     <NavItem icon={<PlayCircle size={20} />} label="Vídeos" />
                     <NavItem icon={<BarChart3 size={20} />} label="Estatísticas" />
@@ -166,21 +159,10 @@ export default function Dashboard() {
                     </div>
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-3">
-                            {profile?.role && (
-                                <div className={`hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${isAdmin
-                                    ? 'bg-red-500/10 border-red-500/20 text-red-500'
-                                    : isModerator
-                                        ? 'bg-blue-500/10 border-blue-500/20 text-blue-500'
-                                        : 'bg-[#B42AF0]/10 border-[#B42AF0]/20 text-[#B42AF0]'
-                                    }`}>
-                                    <ShieldCheck size={12} />
-                                    {profile.role === 'admin' ? 'Administrador' : profile.role === 'moderator' ? 'Moderador' : 'Aluno'}
-                                </div>
-                            )}
                             {isAdmin && (
                                 <Link
                                     href="/dashboard/admin"
-                                    className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-red-500 text-white hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20"
+                                    className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-red-500 text-white hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20 cursor-pointer"
                                 >
                                     <Settings size={12} />
                                     Painel Admin
@@ -199,7 +181,9 @@ export default function Dashboard() {
                         </div>
                         <div className="text-right hidden sm:block">
                             <p className="text-sm font-medium">Plano Premium</p>
-                            <p className="text-xs text-purple-400">Ativo via Hotmart</p>
+                            <p className="text-xs text-purple-400 font-medium">
+                                {isAdmin ? 'Administrador' : 'Ativo via Hotmart'}
+                            </p>
                         </div>
                         <div className="relative">
                             <button

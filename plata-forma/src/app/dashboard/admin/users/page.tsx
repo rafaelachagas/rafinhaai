@@ -22,7 +22,7 @@ import {
     EyeOff,
     Trash2
 } from 'lucide-react';
-import { createUser, deleteUser } from '@/app/actions/admin';
+import { createUser, deleteUser, updateUserRole } from '@/app/actions/admin';
 
 interface Profile {
     id: string;
@@ -90,10 +90,10 @@ export default function UserManagementPage() {
         setFormLoading(false);
     };
 
-    const handleDeleteUser = async (userId: string) => {
+    const handleDeleteUser = async (userId: string, userEmail: string) => {
         if (!confirm('Tem certeza que deseja excluir este usuário permanentemente? Esta ação não pode ser desfeita.')) return;
 
-        const result = await deleteUser(userId);
+        const result = await deleteUser(userId, userEmail);
         if (result.success) {
             fetchUsers();
         } else {
@@ -101,14 +101,13 @@ export default function UserManagementPage() {
         }
     };
 
-    const updateRole = async (userId: string, newRole: UserRole) => {
-        const { error } = await supabase
-            .from('profiles')
-            .update({ role: newRole })
-            .eq('id', userId);
+    const updateRole = async (userId: string, userEmail: string, newRole: UserRole) => {
+        if (!profile) return;
 
-        if (error) {
-            alert('Erro ao atualizar cargo: ' + error.message);
+        const result = await updateUserRole(userId, userEmail, newRole, profile.id);
+
+        if (!result.success) {
+            alert(result.error);
         } else {
             setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
         }
@@ -223,8 +222,9 @@ export default function UserManagementPage() {
                                         <td className="px-6 py-4">
                                             <select
                                                 value={user.role}
-                                                onChange={(e) => updateRole(user.id, e.target.value as UserRole)}
-                                                className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border bg-transparent outline-none cursor-pointer transition-all ${user.role === 'admin'
+                                                onChange={(e) => updateRole(user.id, user.email, e.target.value as UserRole)}
+                                                disabled={user.id === profile?.id || ['isaiaszuchi@gmail.com'].includes(user.email)}
+                                                className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border bg-transparent outline-none cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed ${user.role === 'admin'
                                                     ? 'bg-red-500/10 text-red-500 border-red-500/20'
                                                     : user.role === 'moderator'
                                                         ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
@@ -235,6 +235,11 @@ export default function UserManagementPage() {
                                                 <option value="moderator" className={isDark ? 'bg-[#0A0113]' : 'bg-white'}>Moderador</option>
                                                 <option value="admin" className={isDark ? 'bg-[#0A0113]' : 'bg-white'}>Admin</option>
                                             </select>
+                                            {(user.id === profile?.id || ['isaiaszuchi@gmail.com'].includes(user.email)) && (
+                                                <div className="mt-1 flex items-center gap-1 text-[8px] text-gray-500 font-bold uppercase">
+                                                    <Lock size={8} /> Protegido
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className={`flex items-center gap-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -245,9 +250,10 @@ export default function UserManagementPage() {
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 <button
-                                                    onClick={() => handleDeleteUser(user.id)}
-                                                    className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-red-500/10 text-gray-400 hover:text-red-500' : 'hover:bg-red-50 text-gray-500 hover:text-red-600'}`}
-                                                    title="Excluir Usuário"
+                                                    onClick={() => handleDeleteUser(user.id, user.email)}
+                                                    disabled={user.id === profile?.id || ['isaiaszuchi@gmail.com'].includes(user.email)}
+                                                    className={`p-2 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${isDark ? 'hover:bg-red-500/10 text-gray-400 hover:text-red-500' : 'hover:bg-red-50 text-gray-500 hover:text-red-600'}`}
+                                                    title={user.id === profile?.id ? "Você não pode excluir sua própria conta" : "Excluir Usuário"}
                                                 >
                                                     <Trash2 size={18} />
                                                 </button>

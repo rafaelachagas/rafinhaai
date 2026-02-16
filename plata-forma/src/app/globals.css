@@ -25,20 +25,27 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Cursor pointer global para elementos clicáveis */
-button, 
-a, 
-select, 
-input[type="button"], 
-input[type="submit"], 
+/* Cursor pointer global para elementos clicáveis - Forçado fora de layers */
+button,
+a,
+select,
+input[type="button"],
+input[type="submit"],
 input[type="reset"],
 [role="button"] {
-  cursor: pointer;
+  cursor: pointer !important;
+}
+
+/* Garante que o ícone dentro do botão também herde o cursor */
+button *,
+[role="button"] * {
+  cursor: inherit !important;
 }
 
 /* Garante que elementos desabilitados não mostrem o pointer */
 button:disabled,
 input:disabled,
-[disabled] {
+[disabled],
+[disabled] * {
   cursor: not-allowed !important;
 }

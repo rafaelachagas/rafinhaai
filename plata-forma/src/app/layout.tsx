@@ -46,6 +46,21 @@ export default function RootLayout({
             `,
           }}
         />
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              button, a, select, [role="button"], input[type="button"], input[type="submit"] {
+                cursor: pointer !important;
+              }
+              button:disabled, input:disabled, [disabled] {
+                cursor: not-allowed !important;
+              }
+              button *, [role="button"] * {
+                cursor: inherit !important;
+              }
+            `,
+          }}
+        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}

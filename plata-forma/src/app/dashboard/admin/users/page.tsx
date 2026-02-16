@@ -172,12 +172,13 @@ export default function UserManagementPage() {
                             <ChevronLeft size={20} />
                         </button>
                         <div>
-                            <h1 className="text-2xl font-bold">Gestão de Usuários</h1>
+                            <h1 className="text-2xl font-bold">Gestão de Usuários (SISTEMA ATUALIZADO)</h1>
                             <p className={isDark ? 'text-gray-400' : 'text-gray-500'}>Gerencie acessos e permissões da plataforma.</p>
                         </div>
                     </div>
                     <button
                         onClick={() => setIsAddModalOpen(true)}
+                        style={{ cursor: 'pointer' }}
                         className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-red-500/20"
                     >
                         <UserPlus size={20} />
@@ -292,6 +293,7 @@ export default function UserManagementPage() {
                                                 <button
                                                     onClick={() => handleDeleteUser(user.id, user.email)}
                                                     disabled={user.role === 'admin'}
+                                                    style={{ cursor: user.role === 'admin' ? 'not-allowed' : 'pointer' }}
                                                     className={`p-2 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${isDark ? 'hover:bg-red-500/10 text-gray-400 hover:text-red-500' : 'hover:bg-red-50 text-gray-500 hover:text-red-600'}`}
                                                     title={user.role === 'admin' ? "Administradores só podem ser excluídos via Supabase" : "Excluir Usuário"}
                                                 >
@@ -299,6 +301,7 @@ export default function UserManagementPage() {
                                                 </button>
                                                 <button
                                                     onClick={() => handleEditClick(user)}
+                                                    style={{ cursor: 'pointer' }}
                                                     className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
                                                     title="Editar Usuário"
                                                 >

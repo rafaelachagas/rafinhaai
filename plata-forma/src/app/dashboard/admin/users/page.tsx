@@ -353,7 +353,6 @@ export default function UserManagementPage() {
                                 >
                                     <option value="user">Aluno</option>
                                     <option value="moderator">Moderador</option>
-                                    <option value="admin">Administrador</option>
                                 </select>
                             </div>
 

@@ -16,8 +16,12 @@ import {
     ChevronLeft,
     Loader2,
     X,
-    Check
+    Check,
+    Lock,
+    Eye,
+    EyeOff
 } from 'lucide-react';
+import { createUser } from '@/app/actions/admin';
 
 interface Profile {
     id: string;
@@ -34,6 +38,15 @@ export default function UserManagementPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+    // Form states
+    const [newUserName, setNewUserName] = useState('');
+    const [newUserEmail, setNewUserEmail] = useState('');
+    const [newUserPassword, setNewUserPassword] = useState('');
+    const [newUserRole, setNewUserRole] = useState<UserRole>('user');
+    const [showPassword, setShowPassword] = useState(false);
+    const [formLoading, setFormLoading] = useState(false);
+    const [formError, setFormError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!themeLoading && (!profile || (profile.role !== 'admin' && profile.role !== 'moderator'))) {
@@ -54,6 +67,26 @@ export default function UserManagementPage() {
             setUsers(data as Profile[]);
         }
         setLoading(false);
+    };
+
+    const handleCreateUser = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setFormLoading(true);
+        setFormError(null);
+
+        const result = await createUser(newUserEmail, newUserName, newUserPassword, newUserRole);
+
+        if (result.success) {
+            setIsAddModalOpen(false);
+            setNewUserName('');
+            setNewUserEmail('');
+            setNewUserPassword('');
+            setNewUserRole('user');
+            fetchUsers();
+        } else {
+            setFormError(result.error || 'Erro ao criar usuário');
+        }
+        setFormLoading(false);
     };
 
     const updateRole = async (userId: string, newRole: UserRole) => {
@@ -159,10 +192,10 @@ export default function UserManagementPage() {
                                                 value={user.role}
                                                 onChange={(e) => updateRole(user.id, e.target.value as UserRole)}
                                                 className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border bg-transparent outline-none cursor-pointer transition-all ${user.role === 'admin'
-                                                        ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                                                        : user.role === 'moderator'
-                                                            ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
-                                                            : 'bg-[#B42AF0]/10 text-[#B42AF0] border-[#B42AF0]/20'
+                                                    ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                                    : user.role === 'moderator'
+                                                        ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                                                        : 'bg-[#B42AF0]/10 text-[#B42AF0] border-[#B42AF0]/20'
                                                     }`}
                                             >
                                                 <option value="user" className={isDark ? 'bg-[#0A0113]' : 'bg-white'}>Aluno</option>
@@ -197,32 +230,97 @@ export default function UserManagementPage() {
                 </div>
             </div>
 
-            {/* Simple Add User Information (since full creation requires edge functions/service key) */}
             {isAddModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)} />
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !formLoading && setIsAddModalOpen(false)} />
                     <div className={`w-full max-w-md relative rounded-[2.5rem] p-8 border animate-in zoom-in duration-300 ${isDark ? 'bg-[#120222] border-white/10' : 'bg-white border-gray-100 shadow-2xl'}`}>
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-xl font-bold">Criar Novo Usuário</h2>
-                            <button onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-white/5 rounded-full">
+                            <button onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-white/5 rounded-full" disabled={formLoading}>
                                 <X size={20} />
                             </button>
                         </div>
-                        <p className={`text-sm mb-6 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                            Para criar um usuário manualmente sem webhook, você pode:
-                            <br /><br />
-                            1. Criar a conta via <strong>Supabase Auth</strong> no dashboard do Supabase.
-                            <br />
-                            2. O perfil será criado automaticamente com o cargo "user".
-                            <br />
-                            3. Use esta lista para editar o cargo dele depois.
-                        </p>
-                        <button
-                            onClick={() => setIsAddModalOpen(false)}
-                            className="w-full bg-[#B42AF0] py-4 rounded-2xl font-bold text-white transition-all active:scale-[0.98]"
-                        >
-                            Entendi
-                        </button>
+
+                        <form onSubmit={handleCreateUser} className="space-y-4">
+                            <div className="space-y-2">
+                                <label className={`text-xs font-semibold uppercase tracking-wider ml-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                    Nome Completo
+                                </label>
+                                <input
+                                    required
+                                    type="text"
+                                    value={newUserName}
+                                    onChange={(e) => setNewUserName(e.target.value)}
+                                    className={`w-full px-4 py-3 rounded-xl border outline-none transition-all ${isDark ? 'bg-white/5 border-white/10 focus:border-[#B42AF0]/50' : 'bg-gray-50 border-gray-100 focus:border-[#B42AF0]/50'}`}
+                                    placeholder="Ex: João Silva"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className={`text-xs font-semibold uppercase tracking-wider ml-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                    E-mail
+                                </label>
+                                <input
+                                    required
+                                    type="email"
+                                    value={newUserEmail}
+                                    onChange={(e) => setNewUserEmail(e.target.value)}
+                                    className={`w-full px-4 py-3 rounded-xl border outline-none transition-all ${isDark ? 'bg-white/5 border-white/10 focus:border-[#B42AF0]/50' : 'bg-gray-50 border-gray-100 focus:border-[#B42AF0]/50'}`}
+                                    placeholder="email@exemplo.com"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className={`text-xs font-semibold uppercase tracking-wider ml-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                    Senha Inicial
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        required
+                                        type={showPassword ? 'text' : 'password'}
+                                        value={newUserPassword}
+                                        onChange={(e) => setNewUserPassword(e.target.value)}
+                                        className={`w-full px-4 py-3 pr-11 rounded-xl border outline-none transition-all ${isDark ? 'bg-white/5 border-white/10 focus:border-[#B42AF0]/50' : 'bg-gray-50 border-gray-100 focus:border-[#B42AF0]/50'}`}
+                                        placeholder="No mínimo 6 caracteres"
+                                        minLength={6}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                                    >
+                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className={`text-xs font-semibold uppercase tracking-wider ml-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                    Cargo
+                                </label>
+                                <select
+                                    value={newUserRole}
+                                    onChange={(e) => setNewUserRole(e.target.value as UserRole)}
+                                    className={`w-full px-4 py-3 rounded-xl border outline-none transition-all appearance-none cursor-pointer ${isDark ? 'bg-white/5 border-white/10 focus:border-[#B42AF0]/50' : 'bg-gray-50 border-gray-100 focus:border-[#B42AF0]/50'}`}
+                                >
+                                    <option value="user">Aluno</option>
+                                    <option value="moderator">Moderador</option>
+                                    <option value="admin">Administrador</option>
+                                </select>
+                            </div>
+
+                            {formError && (
+                                <p className="text-red-500 text-xs px-2">{formError}</p>
+                            )}
+
+                            <button
+                                type="submit"
+                                disabled={formLoading}
+                                className="w-full bg-[#B42AF0] hover:bg-[#A21FDC] py-4 rounded-2xl font-bold text-white transition-all active:scale-[0.98] mt-4 flex items-center justify-center gap-2"
+                            >
+                                {formLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><UserPlus size={18} /> Criar Usuário</>}
+                            </button>
+                        </form>
                     </div>
                 </div>
             )}

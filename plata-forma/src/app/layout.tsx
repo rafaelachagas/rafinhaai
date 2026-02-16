@@ -51,10 +51,6 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ThemeProvider>
-          <div style={{ background: 'red', color: 'white', fontWeight: 'bold', padding: '10px', textAlign: 'center', position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999 }}>
-            ARQUIVO DE LAYOUT ATUALIZADO (SE VOCÊ VÊ ISSO, O CÓDIGO ESTÁ CHEGANDO)
-          </div>
-          <div style={{ height: '40px' }} />
           {children}
         </ThemeProvider>
       </body>

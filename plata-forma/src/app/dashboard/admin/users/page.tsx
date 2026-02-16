@@ -140,7 +140,7 @@ export default function UserManagementPage() {
                             <ChevronLeft size={20} />
                         </button>
                         <div>
-                            <h1 className="text-2xl font-bold">Gestão de Usuários (SISTEMA ATUALIZADO)</h1>
+                            <h1 className="text-2xl font-bold">Gestão de Usuários</h1>
                             <p className={isDark ? 'text-gray-400' : 'text-gray-500'}>Gerencie acessos e permissões da plataforma.</p>
                         </div>
                     </div>
@@ -283,7 +283,7 @@ export default function UserManagementPage() {
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !formLoading && setIsAddModalOpen(false)} />
                     <div className={`w-full max-w-md relative rounded-[2.5rem] p-8 border animate-in zoom-in duration-300 ${isDark ? 'bg-[#120222] border-white/10' : 'bg-white border-gray-100 shadow-2xl'}`}>
                         <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-xl font-bold">Criar Novo Usuário (MODAL ATUALIZADO)</h2>
+                            <h2 className="text-xl font-bold">Criar Novo Usuário</h2>
                             <button onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-white/5 rounded-full" disabled={formLoading}>
                                 <X size={20} />
                             </button>

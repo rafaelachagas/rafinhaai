@@ -18,10 +18,21 @@ export default function ThemeToggle() {
         <button
             onClick={toggleTheme}
             type="button"
-            className={`fixed bottom-6 right-6 p-4 rounded-2xl border transition-all duration-300 z-[100] cursor-pointer shadow-lg hover:scale-110 active:scale-95 ${isDark
-                    ? 'bg-[#120222] border-white/10 text-[#B42AF0] shadow-violet-950/20 hover:bg-[#1a052d]'
-                    : 'bg-white border-gray-200 text-[#B42AF0] shadow-purple-500/10 hover:shadow-purple-500/20'
-                }`}
+            style={{
+                position: 'fixed',
+                bottom: '24px',
+                right: '24px',
+                zIndex: 9999,
+                backgroundColor: isDark ? '#B42AF0' : '#7D1AB8',
+                color: 'white',
+                padding: '16px',
+                borderRadius: '16px',
+                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+            }}
             title={isDark ? "Mudar para modo claro" : "Mudar para modo escuro"}
         >
             {isDark ? <Sun size={24} /> : <Moon size={24} />}

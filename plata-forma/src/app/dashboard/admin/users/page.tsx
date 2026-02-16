@@ -172,7 +172,7 @@ export default function UserManagementPage() {
                             <ChevronLeft size={20} />
                         </button>
                         <div>
-                            <h1 className="text-2xl font-bold">Gestão de Usuários (SISTEMA ATUALIZADO)</h1>
+                            <h1 className="text-2xl font-bold">Gestão de Usuários</h1>
                             <p className={isDark ? 'text-gray-400' : 'text-gray-500'}>Gerencie acessos e permissões da plataforma.</p>
                         </div>
                     </div>

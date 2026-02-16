@@ -1,0 +1,231 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase/client';
+import { useTheme, UserRole } from '@/context/ThemeContext';
+import { useRouter } from 'next/navigation';
+import {
+    Users,
+    UserPlus,
+    Search,
+    Filter,
+    MoreVertical,
+    Shield,
+    Mail,
+    Calendar,
+    ChevronLeft,
+    Loader2,
+    X,
+    Check
+} from 'lucide-react';
+
+interface Profile {
+    id: string;
+    email: string;
+    role: UserRole;
+    created_at: string;
+    full_name?: string;
+}
+
+export default function UserManagementPage() {
+    const { isDark, profile, loading: themeLoading } = useTheme();
+    const router = useRouter();
+    const [users, setUsers] = useState<Profile[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+    useEffect(() => {
+        if (!themeLoading && (!profile || (profile.role !== 'admin' && profile.role !== 'moderator'))) {
+            router.push('/dashboard');
+        } else if (profile) {
+            fetchUsers();
+        }
+    }, [profile, themeLoading, router]);
+
+    const fetchUsers = async () => {
+        setLoading(true);
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (data) {
+            setUsers(data as Profile[]);
+        }
+        setLoading(false);
+    };
+
+    const updateRole = async (userId: string, newRole: UserRole) => {
+        const { error } = await supabase
+            .from('profiles')
+            .update({ role: newRole })
+            .eq('id', userId);
+
+        if (error) {
+            alert('Erro ao atualizar cargo: ' + error.message);
+        } else {
+            setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
+        }
+    };
+
+    const filteredUsers = users.filter(user =>
+        user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    if (themeLoading || (loading && users.length === 0)) {
+        return (
+            <div className={`min-h-screen flex items-center justify-center ${isDark ? 'bg-[#0A0113]' : 'bg-gray-50'}`}>
+                <Loader2 className="w-8 h-8 animate-spin text-[#B42AF0]" />
+            </div>
+        );
+    }
+
+    return (
+        <div className={`min-h-screen ${isDark ? 'bg-[#050505] text-white' : 'bg-gray-50 text-gray-900'} selection:bg-purple-500/30 p-4 md:p-8`}>
+            <div className="max-w-7xl mx-auto">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => router.push('/dashboard')}
+                            className={`p-2 rounded-xl border transition-colors ${isDark ? 'bg-white/5 border-white/10 text-gray-400 hover:text-white' : 'bg-white border-gray-200 text-gray-500 hover:text-gray-900'}`}
+                        >
+                            <ChevronLeft size={20} />
+                        </button>
+                        <div>
+                            <h1 className="text-2xl font-bold">Gestão de Usuários</h1>
+                            <p className={isDark ? 'text-gray-400' : 'text-gray-500'}>Gerencie acessos e permissões da plataforma.</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="flex items-center justify-center gap-2 bg-[#B42AF0] hover:bg-[#A21FDC] text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-[#B42AF0]/20"
+                    >
+                        <UserPlus size={20} />
+                        Novo Usuário
+                    </button>
+                </div>
+
+                {/* Filters & Search */}
+                <div className={`p-4 rounded-[2rem] border mb-6 flex flex-col md:flex-row gap-4 ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200 shadow-sm'}`}>
+                    <div className="relative flex-1">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <input
+                            type="text"
+                            placeholder="Buscar por nome ou e-mail..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className={`w-full pl-11 pr-4 py-3 rounded-xl border outline-none transition-all ${isDark ? 'bg-[#0A0113] border-white/10 focus:border-[#B42AF0]/50' : 'bg-gray-50 border-gray-100 focus:border-[#B42AF0]/50'}`}
+                        />
+                    </div>
+                    <div className="flex gap-2">
+                        <button className={`p-3 rounded-xl border flex items-center gap-2 transition-colors ${isDark ? 'bg-[#0A0113] border-white/10 text-gray-400' : 'bg-gray-50 border-gray-100 text-gray-500'}`}>
+                            <Filter size={18} />
+                            Filtros
+                        </button>
+                    </div>
+                </div>
+
+                {/* Users List */}
+                <div className={`overflow-hidden rounded-[2rem] border ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200 shadow-sm'}`}>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-50 text-gray-500'}`}>
+                                <tr>
+                                    <th className="px-6 py-4">Usuário</th>
+                                    <th className="px-6 py-4">Cargo</th>
+                                    <th className="px-6 py-4">Cadastro</th>
+                                    <th className="px-6 py-4 text-right">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-gray-100'}`}>
+                                {filteredUsers.map((user) => (
+                                    <tr key={user.id} className={`transition-colors ${isDark ? 'hover:bg-white/[0.02]' : 'hover:bg-gray-50'}`}>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#B42AF0] to-[#7D1AB8] flex items-center justify-center text-white font-bold text-sm">
+                                                    {(user.full_name || user.email || '?')[0].toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold">{user.full_name || 'Usuário sem nome'}</p>
+                                                    <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{user.email}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <select
+                                                value={user.role}
+                                                onChange={(e) => updateRole(user.id, e.target.value as UserRole)}
+                                                className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border bg-transparent outline-none cursor-pointer transition-all ${user.role === 'admin'
+                                                        ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                                        : user.role === 'moderator'
+                                                            ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                                                            : 'bg-[#B42AF0]/10 text-[#B42AF0] border-[#B42AF0]/20'
+                                                    }`}
+                                            >
+                                                <option value="user" className={isDark ? 'bg-[#0A0113]' : 'bg-white'}>Aluno</option>
+                                                <option value="moderator" className={isDark ? 'bg-[#0A0113]' : 'bg-white'}>Moderador</option>
+                                                <option value="admin" className={isDark ? 'bg-[#0A0113]' : 'bg-white'}>Admin</option>
+                                            </select>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className={`flex items-center gap-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                                <Calendar size={14} />
+                                                {new Date(user.created_at).toLocaleDateString()}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <button className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}>
+                                                <MoreVertical size={18} />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {filteredUsers.length === 0 && (
+                                    <tr>
+                                        <td colSpan={4} className="px-6 py-20 text-center">
+                                            <Users size={48} className="mx-auto mb-4 text-gray-600 opacity-20" />
+                                            <p className={isDark ? 'text-gray-400' : 'text-gray-500'}>Nenhum usuário encontrado.</p>
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {/* Simple Add User Information (since full creation requires edge functions/service key) */}
+            {isAddModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)} />
+                    <div className={`w-full max-w-md relative rounded-[2.5rem] p-8 border animate-in zoom-in duration-300 ${isDark ? 'bg-[#120222] border-white/10' : 'bg-white border-gray-100 shadow-2xl'}`}>
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-xl font-bold">Criar Novo Usuário</h2>
+                            <button onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-white/5 rounded-full">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <p className={`text-sm mb-6 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                            Para criar um usuário manualmente sem webhook, você pode:
+                            <br /><br />
+                            1. Criar a conta via <strong>Supabase Auth</strong> no dashboard do Supabase.
+                            <br />
+                            2. O perfil será criado automaticamente com o cargo "user".
+                            <br />
+                            3. Use esta lista para editar o cargo dele depois.
+                        </p>
+                        <button
+                            onClick={() => setIsAddModalOpen(false)}
+                            className="w-full bg-[#B42AF0] py-4 rounded-2xl font-bold text-white transition-all active:scale-[0.98]"
+                        >
+                            Entendi
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}

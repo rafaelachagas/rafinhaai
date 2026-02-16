@@ -1,14 +1,54 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Sparkles, BookOpen, PenTool, BarChart3, MessageSquare, LogOut, ChevronRight, PlayCircle, Settings, User } from 'lucide-react';
+import { Sparkles, BookOpen, PenTool, BarChart3, MessageSquare, LogOut, ChevronRight, PlayCircle, Settings, Users, LayoutDashboard, Target, Sun, Moon, Bell, Search, ShieldCheck } from 'lucide-react';
+import { useTheme } from '@/context/ThemeContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 
+// Helper component for navigation items (assuming it's defined elsewhere or will be added)
+interface NavItemProps {
+    icon: React.ReactNode;
+    label: string;
+    active?: boolean;
+    onClick?: () => void;
+    href?: string;
+}
+
+const NavItem = ({ icon, label, active, onClick, href }: NavItemProps) => {
+    const baseClasses = "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm group transition-all";
+    const activeClasses = "text-white bg-white/5";
+    const inactiveClasses = "text-gray-400 hover:text-white hover:bg-white/5";
+
+    const content = (
+        <>
+            {icon}
+            <span className="flex-1 text-left">{label}</span>
+            <ChevronRight className={`w-4 h-4 transition-all opacity-0 group-hover:opacity-100 ${active ? 'opacity-100' : ''}`} />
+        </>
+    );
+
+    if (href) {
+        return (
+            <Link href={href} className={`${baseClasses} ${active ? activeClasses : inactiveClasses}`}>
+                {content}
+            </Link>
+        );
+    }
+
+    return (
+        <button onClick={onClick} className={`${baseClasses} ${active ? activeClasses : inactiveClasses}`}>
+            {content}
+        </button>
+    );
+};
+
+
 export default function Dashboard() {
     const router = useRouter();
-    const [userEmail, setUserEmail] = useState<string | null>(null);
+    const { isDark, toggleTheme, profile, loading: themeLoading } = useTheme();
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const checkUser = async () => {
@@ -16,7 +56,7 @@ export default function Dashboard() {
             if (!session) {
                 router.push('/login');
             } else {
-                setUserEmail(session.user.email ?? null);
+                setLoading(false);
             }
         };
         checkUser();
@@ -26,6 +66,17 @@ export default function Dashboard() {
         await supabase.auth.signOut();
         router.push('/login');
     };
+
+    if (loading || themeLoading) {
+        return (
+            <div className={`min-h-screen flex items-center justify-center ${isDark ? 'bg-[#0A0113]' : 'bg-gray-50'}`}>
+                <div className="w-8 h-8 border-4 border-[#B42AF0] border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        );
+    }
+
+    const isAdmin = profile?.role === 'admin';
+    const isModerator = profile?.role === 'moderator' || isAdmin;
 
     const tools = [
         {
@@ -38,7 +89,7 @@ export default function Dashboard() {
         {
             title: 'Criar Roteiros',
             desc: 'IA para criar roteiros de alta conversão.',
-            icon: PenTool,
+            icon: PenTool, // Keeping PenTool as it was in original and is now imported
             color: 'bg-purple-500',
             status: 'Usar IA',
             link: '/dashboard/scripts'
@@ -67,9 +118,9 @@ export default function Dashboard() {
     ];
 
     return (
-        <div className="min-h-screen bg-[#050505] text-white selection:bg-purple-500/30 font-sans">
+        <div className={`min-h-screen ${isDark ? 'bg-[#050505] text-white' : 'bg-gray-50 text-gray-900'} selection:bg-purple-500/30 font-sans`}>
             {/* Sidebar - Desktop */}
-            <aside className="fixed left-0 top-0 h-full w-64 bg-white/[0.02] border-r border-white/5 hidden lg:flex flex-col p-6">
+            <aside className={`fixed left-0 top-0 h-full w-64 ${isDark ? 'bg-white/[0.02] border-r border-white/5' : 'bg-white border-r border-gray-200'} hidden lg:flex flex-col p-6`}>
                 <div className="flex items-center gap-3 mb-10 px-2">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
                         <Sparkles className="text-white w-6 h-6" />
@@ -78,12 +129,18 @@ export default function Dashboard() {
                 </div>
 
                 <nav className="flex-1 space-y-2">
-                    {['Dashboard', 'Minha Conta', 'Suporte', 'Configurações'].map((item) => (
-                        <button key={item} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all text-sm group">
-                            <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all -ml-2" />
-                            {item}
-                        </button>
-                    ))}
+                    <NavItem icon={<LayoutDashboard size={20} />} label="Início" active href="/dashboard" />
+                    {isModerator && (
+                        <NavItem
+                            icon={<Users size={20} />}
+                            label="Gestão de Usuários"
+                            onClick={() => router.push('/dashboard/admin/users')}
+                        />
+                    )}
+                    <NavItem icon={<MessageSquare size={20} />} label="Scripts AI" href="/dashboard/scripts" />
+                    <NavItem icon={<PlayCircle size={20} />} label="Vídeos" />
+                    <NavItem icon={<BarChart3 size={20} />} label="Estatísticas" />
+                    <NavItem icon={<Settings size={20} />} label="Configurações" />
                 </nav>
 
                 <button
@@ -100,19 +157,52 @@ export default function Dashboard() {
                 {/* Header */}
                 <header className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6">
                     <div>
-                        <h2 className="text-3xl font-bold mb-2">Olá, {userEmail?.split('@')[0] || 'Aluno(a)'} 👋</h2>
+                        <h2 className="text-3xl font-bold mb-2">Olá, {profile?.full_name || profile?.email?.split('@')[0] || 'Aluno(a)'} 👋</h2>
                         <p className="text-gray-400">Pronto para a sua próxima grande venda?</p>
                     </div>
                     <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
+                            {profile?.role && (
+                                <div className={`hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${isAdmin
+                                    ? 'bg-amber-500/10 border-amber-500/20 text-amber-500'
+                                    : isModerator
+                                        ? 'bg-blue-500/10 border-blue-500/20 text-blue-500'
+                                        : 'bg-[#B42AF0]/10 border-[#B42AF0]/20 text-[#B42AF0]'
+                                    }`}>
+                                    <ShieldCheck size={12} />
+                                    {profile.role === 'admin' ? 'Administrador' : profile.role === 'moderator' ? 'Moderador' : 'Aluno'}
+                                </div>
+                            )}
+                            <button
+                                onClick={toggleTheme}
+                                className={`p-2 rounded-xl border transition-colors ${isDark ? 'bg-white/5 border-white/10 text-gray-400 hover:text-white' : 'bg-gray-50 border-gray-200 text-gray-500 hover:text-gray-900'}`}
+                            >
+                                {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                            </button>
+                            <button className={`p-2 rounded-xl border transition-colors relative ${isDark ? 'bg-white/5 border-white/10 text-gray-400 hover:text-white' : 'bg-gray-50 border-gray-200 text-gray-500 hover:text-gray-900'}`}>
+                                <Bell size={18} />
+                                <span className="absolute top-2 right-2 w-2 h-2 bg-[#B42AF0] rounded-full border-2 border-transparent"></span>
+                            </button>
+                        </div>
                         <div className="text-right hidden sm:block">
                             <p className="text-sm font-medium">Plano Premium</p>
                             <p className="text-xs text-purple-400">Ativo via Hotmart</p>
                         </div>
                         <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-                            <User className="w-6 h-6 text-gray-400" />
+                            <Users className="w-6 h-6 text-gray-400" />
                         </div>
                     </div>
                 </header>
+
+                {/* Dashboard Content */}
+                <div className="mb-8">
+                    <h1 className={`text-2xl md:text-3xl font-bold mb-2 transition-colors ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                        {isAdmin ? 'Painel Administrativo' : 'Olá, Aluno(a)'}
+                    </h1>
+                    <p className={isDark ? 'text-gray-400' : 'text-gray-500'}>
+                        {isAdmin ? 'Gerencie os usuários e configurações da plataforma.' : 'Bem-vindo de volta! O que vamos criar hoje?'}
+                    </p>
+                </div>
 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">

@@ -38,42 +38,42 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             setTheme(isSystemDark ? 'dark' : 'light');
         }
 
-        // 2. Auth & Profile setup
-        const fetchProfile = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
+        // 2. Auth & Profile setup - Only ONE source of truth
+        const handleAuthChange = async (event: string, session: any) => {
             if (session?.user) {
-                const { data: profileData } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', session.user.id)
-                    .single();
+                try {
+                    const { data: profileData, error: profileError } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', session.user.id)
+                        .single();
 
-                if (profileData) {
-                    setProfile(profileData as UserProfile);
-                }
-            }
-            setLoading(false);
-        };
-
-        fetchProfile();
-
-        // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (session?.user) {
-                const { data: profileData } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', session.user.id)
-                    .single();
-
-                if (profileData) {
-                    setProfile(profileData as UserProfile);
+                    if (profileData) {
+                        setProfile(profileData as UserProfile);
+                    } else if (profileError) {
+                        console.error('Error fetching profile:', profileError);
+                    }
+                } catch (err) {
+                    console.error('Unexpected error fetching profile:', err);
                 }
             } else {
                 setProfile(null);
             }
             setLoading(false);
+        };
+
+        // Listen for auth changes (this also handles initial session)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            handleAuthChange(event, session);
         });
+
+        // Fallback: If onAuthStateChange doesn't trigger immediately, check session
+        const initSession = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) handleAuthChange('INITIAL', session);
+            else setLoading(false);
+        };
+        initSession();
 
         return () => subscription.unsubscribe();
     }, []);

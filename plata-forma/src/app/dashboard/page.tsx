@@ -52,14 +52,17 @@ export default function Dashboard() {
     const [adminStats, setAdminStats] = useState({ totalUsers: 0 });
 
     useEffect(() => {
-        const checkUser = async () => {
-            if (!themeLoading && !profile) {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (!session) router.push('/login');
+        if (!themeLoading) {
+            if (!profile) {
+                // Se não tem perfil, verifica se tem sessão
+                supabase.auth.getSession().then(({ data: { session } }) => {
+                    if (!session) router.push('/login');
+                    else setLoading(false);
+                });
+            } else {
+                setLoading(false);
             }
-            if (!themeLoading) setLoading(false);
-        };
-        checkUser();
+        }
     }, [router, profile, themeLoading]);
 
     const handleLogout = async () => {

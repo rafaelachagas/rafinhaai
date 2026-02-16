@@ -20,31 +20,44 @@ export default function LoginPage() {
 
     useEffect(() => {
         setMounted(true);
-        // Redirecionar se já estiver logado
-        const checkUser = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                router.push('/dashboard');
-            }
-        };
-        checkUser();
-    }, [router]);
+    }, []);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (loading) return;
+
         setLoading(true);
         setError(null);
 
-        const { error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        });
+        try {
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
 
-        if (error) {
-            setError('E-mail ou senha inválidos. Verifique se o acesso já foi liberado na Hotmart.');
+            if (error) {
+                // Mensagens mais amigáveis para erros comuns
+                if (error.message.includes('Invalid login credentials')) {
+                    setError('E-mail ou senha incorretos.');
+                } else if (error.message.includes('Email not confirmed')) {
+                    setError('Por favor, confirme seu e-mail antes de acessar.');
+                } else {
+                    setError('Erro ao entrar: ' + error.message);
+                }
+                setLoading(false);
+                return;
+            }
+
+            if (data?.session) {
+                // Redirecionamento forçado para limpar o estado e garantir fluidez
+                window.location.href = '/dashboard';
+            } else {
+                setError('Sessão não iniciada. Tente novamente.');
+                setLoading(false);
+            }
+        } catch (err: any) {
+            setError('Erro inesperado: ' + (err.message || 'Falha na conexão'));
             setLoading(false);
-        } else {
-            router.push('/dashboard');
         }
     };
 

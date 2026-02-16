@@ -248,7 +248,15 @@ export default function UserManagementPage() {
                                                 </div>
                                                 <div>
                                                     <p className="font-bold">{user.full_name || 'Usuário sem nome'}</p>
-                                                    <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{user.email}</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{user.email}</p>
+                                                        {user.cpf && (
+                                                            <>
+                                                                <span className="w-1 h-1 rounded-full bg-gray-600" />
+                                                                <p className={`text-[10px] font-medium ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>CPF: {user.cpf}</p>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </td>

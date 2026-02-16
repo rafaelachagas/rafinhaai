@@ -93,7 +93,8 @@ export default function UserManagementPage() {
     const handleDeleteUser = async (userId: string, userEmail: string) => {
         if (!confirm('Tem certeza que deseja excluir este usuário permanentemente? Esta ação não pode ser desfeita.')) return;
 
-        const result = await deleteUser(userId, userEmail);
+        if (!profile) return;
+        const result = await deleteUser(userId, userEmail, profile.id);
         if (result.success) {
             fetchUsers();
         } else {
@@ -223,7 +224,7 @@ export default function UserManagementPage() {
                                             <select
                                                 value={user.role}
                                                 onChange={(e) => updateRole(user.id, user.email, e.target.value as UserRole)}
-                                                disabled={user.id === profile?.id || ['isaiaszuchi@gmail.com'].includes(user.email)}
+                                                disabled={user.id === profile?.id || user.email?.toLowerCase().includes('isaiaszuchi')}
                                                 className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border bg-transparent outline-none cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed ${user.role === 'admin'
                                                     ? 'bg-red-500/10 text-red-500 border-red-500/20'
                                                     : user.role === 'moderator'
@@ -235,7 +236,7 @@ export default function UserManagementPage() {
                                                 <option value="moderator" className={isDark ? 'bg-[#0A0113]' : 'bg-white'}>Moderador</option>
                                                 <option value="admin" className={isDark ? 'bg-[#0A0113]' : 'bg-white'}>Admin</option>
                                             </select>
-                                            {(user.id === profile?.id || ['isaiaszuchi@gmail.com'].includes(user.email)) && (
+                                            {(user.id === profile?.id || user.email?.toLowerCase().includes('isaiaszuchi')) && (
                                                 <div className="mt-1 flex items-center gap-1 text-[8px] text-gray-500 font-bold uppercase">
                                                     <Lock size={8} /> Protegido
                                                 </div>
@@ -251,7 +252,7 @@ export default function UserManagementPage() {
                                             <div className="flex items-center justify-end gap-2">
                                                 <button
                                                     onClick={() => handleDeleteUser(user.id, user.email)}
-                                                    disabled={user.id === profile?.id || ['isaiaszuchi@gmail.com'].includes(user.email)}
+                                                    disabled={user.id === profile?.id || user.email?.toLowerCase().includes('isaiaszuchi')}
                                                     className={`p-2 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${isDark ? 'hover:bg-red-500/10 text-gray-400 hover:text-red-500' : 'hover:bg-red-50 text-gray-500 hover:text-red-600'}`}
                                                     title={user.id === profile?.id ? "Você não pode excluir sua própria conta" : "Excluir Usuário"}
                                                 >

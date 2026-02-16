@@ -75,18 +75,6 @@ export default function LoginPage() {
                 }}
             />
 
-            {/* Theme Toggle Button */}
-            <button
-                onClick={toggleTheme}
-                type="button"
-                className={`absolute top-6 right-6 p-3 rounded-2xl border transition-all duration-300 z-20 cursor-pointer ${isDark
-                    ? 'bg-white/5 border-white/10 text-[#B42AF0] hover:bg-white/10'
-                    : 'bg-white border-gray-200 text-[#B42AF0] shadow-sm hover:shadow-md'
-                    }`}
-                title={isDark ? "Mudar para modo claro" : "Mudar para modo escuro"}
-            >
-                {isDark ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
 
             {/* Background Glows - Desktop only */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none hidden md:block">

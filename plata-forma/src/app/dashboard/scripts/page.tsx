@@ -1,16 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sparkles, PenTool, Loader2, ArrowLeft, Copy, Check } from 'lucide-react';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 
+import { useTheme } from '@/context/ThemeContext';
+
 export default function ScriptsPage() {
+    const { isDark } = useTheme();
+    const [mounted, setMounted] = useState(false);
     const [prompt, setPrompt] = useState('');
     const [type, setType] = useState('YouTube');
     const [loading, setLoading] = useState(false);
     const [script, setScript] = useState('');
     const [copied, setCopied] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted) return null;
 
     const generateScript = async () => {
         if (!prompt) return;
@@ -37,7 +47,7 @@ export default function ScriptsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#050505] text-white p-4 lg:p-10 selection:bg-purple-500/30">
+        <div className={`min-h-screen ${isDark ? 'bg-[#050505] text-white' : 'bg-gray-50 text-gray-900'} p-4 lg:p-10 selection:bg-purple-500/30 transition-colors duration-500`}>
             <div className="max-w-4xl mx-auto">
                 <Link href="/dashboard" className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors">
                     <ArrowLeft size={18} />
@@ -57,13 +67,13 @@ export default function ScriptsPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Form */}
                     <div className="lg:col-span-1 space-y-6">
-                        <div className="p-6 bg-white/5 border border-white/10 rounded-3xl space-y-4">
+                        <div className={`p-6 ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-gray-100 shadow-sm'} rounded-3xl space-y-4 transition-all duration-500`}>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-300">Tipo de Conteúdo</label>
+                                <label className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Tipo de Conteúdo</label>
                                 <select
                                     value={type}
                                     onChange={(e) => setType(e.target.value)}
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none transition-all"
+                                    className={`w-full ${isDark ? 'bg-black/40 border-white/10' : 'bg-gray-50 border-gray-100'} rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none transition-all`}
                                 >
                                     <option>YouTube</option>
                                     <option>Instagram (Reels)</option>
@@ -73,13 +83,13 @@ export default function ScriptsPage() {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-300">Tema ou Título</label>
+                                <label className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Tema ou Título</label>
                                 <textarea
                                     value={prompt}
                                     onChange={(e) => setPrompt(e.target.value)}
                                     placeholder="Sobre o que é o vídeo?"
                                     rows={4}
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none transition-all resize-none"
+                                    className={`w-full ${isDark ? 'bg-black/40 border-white/10' : 'bg-gray-50 border-gray-100'} rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none transition-all resize-none`}
                                 />
                             </div>
 
@@ -100,7 +110,7 @@ export default function ScriptsPage() {
 
                     {/* Result */}
                     <div className="lg:col-span-2">
-                        <div className="h-full min-h-[400px] bg-white/5 border border-white/10 rounded-3xl p-8 relative overflow-hidden">
+                        <div className={`h-full min-h-[400px] ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-gray-100 shadow-sm'} rounded-3xl p-8 relative overflow-hidden transition-all duration-500`}>
                             {!script && !loading && (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 gap-4">
                                     <Sparkles size={48} className="opacity-20 text-purple-400" />

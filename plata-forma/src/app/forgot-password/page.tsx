@@ -47,18 +47,6 @@ export default function ForgotPasswordPage() {
 
     return (
         <div className={`min-h-screen flex items-center justify-center p-4 selection:bg-[#B42AF0]/30 overflow-hidden relative ${backgroundClass} md:transition-colors md:duration-500`}>
-            {/* Theme Toggle Button */}
-            <button
-                onClick={toggleTheme}
-                type="button"
-                className={`absolute top-6 right-6 p-3 rounded-2xl border transition-all duration-300 z-20 cursor-pointer ${isDark
-                    ? 'bg-white/5 border-white/10 text-[#B42AF0] hover:bg-white/10'
-                    : 'bg-white border-gray-200 text-[#B42AF0] shadow-sm hover:shadow-md'
-                    }`}
-                title={isDark ? "Mudar para modo claro" : "Mudar para modo escuro"}
-            >
-                {isDark ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
 
             {/* Centered Highlight Glow Layer - Desktop only */}
             <div

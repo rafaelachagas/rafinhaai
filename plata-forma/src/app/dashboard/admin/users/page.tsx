@@ -134,7 +134,7 @@ export default function UserManagementPage() {
                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                     <div className="flex items-center gap-4">
                         <button
-                            onClick={() => router.push('/dashboard')}
+                            onClick={() => router.push('/dashboard/admin')}
                             className={`p-2 rounded-xl border transition-colors ${isDark ? 'bg-white/5 border-white/10 text-gray-400 hover:text-white' : 'bg-white border-gray-200 text-gray-500 hover:text-gray-900'}`}
                         >
                             <ChevronLeft size={20} />
@@ -146,7 +146,7 @@ export default function UserManagementPage() {
                     </div>
                     <button
                         onClick={() => setIsAddModalOpen(true)}
-                        className="flex items-center justify-center gap-2 bg-[#B42AF0] hover:bg-[#A21FDC] text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-[#B42AF0]/20"
+                        className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-red-500/20"
                     >
                         <UserPlus size={20} />
                         Novo Usuário

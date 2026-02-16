@@ -53,19 +53,14 @@ export default function Dashboard() {
 
     useEffect(() => {
         const checkUser = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                router.push('/login');
-            } else {
-                setLoading(false);
-                if (profile?.role === 'admin') {
-                    const { count } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-                    setAdminStats({ totalUsers: count || 0 });
-                }
+            if (!themeLoading && !profile) {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) router.push('/login');
             }
+            if (!themeLoading) setLoading(false);
         };
         checkUser();
-    }, [router, profile]);
+    }, [router, profile, themeLoading]);
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -178,6 +173,15 @@ export default function Dashboard() {
                                     {profile.role === 'admin' ? 'Administrador' : profile.role === 'moderator' ? 'Moderador' : 'Aluno'}
                                 </div>
                             )}
+                            {isAdmin && (
+                                <Link
+                                    href="/dashboard/admin"
+                                    className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-red-500 text-white hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20"
+                                >
+                                    <Settings size={12} />
+                                    Painel Admin
+                                </Link>
+                            )}
                             <button
                                 onClick={toggleTheme}
                                 className={`p-2 rounded-xl border transition-colors ${isDark ? 'bg-white/5 border-white/10 text-gray-400 hover:text-white' : 'bg-gray-50 border-gray-200 text-gray-500 hover:text-gray-900'}`}
@@ -202,95 +206,50 @@ export default function Dashboard() {
                 {/* Dashboard Content */}
                 <div className="mb-8">
                     <h1 className={`text-2xl md:text-3xl font-bold mb-2 transition-colors ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                        {isAdmin ? 'Painel Administrativo' : 'Olá, Aluno(a)'}
+                        Olá, {profile?.full_name?.split(' ')[0] || 'Aluno(a)'} 👋
                     </h1>
                     <p className={isDark ? 'text-gray-400' : 'text-gray-500'}>
-                        {isAdmin ? 'Gerencie os usuários e configurações da plataforma.' : 'Bem-vindo de volta! O que vamos criar hoje?'}
+                        Bem-vindo de volta! O que vamos criar hoje?
                     </p>
                 </div>
 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                    {isAdmin ? (
-                        <>
-                            {[
-                                { label: 'Total de Usuários', value: adminStats.totalUsers.toString(), icon: Users, color: 'text-blue-400' },
-                                { label: 'Acessos Hoje', value: '...', icon: Target, color: 'text-green-400' },
-                                { label: 'Novas Vendas', value: '...', icon: Sparkles, color: 'text-amber-400' },
-                            ].map((stat, i) => (
-                                <div key={i} className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-sm transition-all hover:bg-white/10">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="p-2 rounded-xl bg-white/5">
-                                            <stat.icon className={`w-5 h-5 ${stat.color}`} />
-                                        </div>
-                                    </div>
-                                    <p className="text-gray-400 text-sm mb-1">{stat.label}</p>
-                                    <h3 className="text-3xl font-bold">{stat.value}</h3>
-                                </div>
-                            ))}
-                        </>
-                    ) : (
-                        [
-                            { label: 'Score de Execução', value: '85', sub: '+12% este mês', icon: BarChart3 },
-                            { label: 'Aulas Assistidas', value: '12/24', sub: 'Módulo 3 em progresso', icon: BookOpen },
-                            { label: 'Créditos IA', value: '1,240', sub: 'Modelo Gemini Flash', icon: Sparkles },
-                        ].map((stat, i) => (
-                            <div key={i} className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-sm">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="p-2 rounded-xl bg-white/5">
-                                        <stat.icon className="w-5 h-5 text-purple-400" />
-                                    </div>
-                                </div>
-                                <p className="text-gray-400 text-sm mb-1">{stat.label}</p>
-                                <div className="flex items-baseline gap-2">
-                                    <h3 className="text-3xl font-bold">{stat.value}</h3>
-                                    <span className="text-xs text-emerald-400">{stat.sub}</span>
+                    {[
+                        { label: 'Score de Execução', value: '85', sub: '+12% este mês', icon: BarChart3 },
+                        { label: 'Aulas Assistidas', value: '12/24', sub: 'Módulo 3 em progresso', icon: BookOpen },
+                        { label: 'Créditos IA', value: '1,240', sub: 'Modelo Gemini Flash', icon: Sparkles },
+                    ].map((stat, i) => (
+                        <div key={i} className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-sm">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="p-2 rounded-xl bg-white/5">
+                                    <stat.icon className="w-5 h-5 text-purple-400" />
                                 </div>
                             </div>
-                        ))
-                    )}
+                            <p className="text-gray-400 text-sm mb-1">{stat.label}</p>
+                            <div className="flex items-baseline gap-2">
+                                <h3 className="text-3xl font-bold">{stat.value}</h3>
+                                <span className="text-xs text-emerald-400">{stat.sub}</span>
+                            </div>
+                        </div>
+                    ))}
                 </div>
 
                 {/* Tools Section */}
                 <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                    {isAdmin ? 'Gestão da Plataforma' : 'Ferramentas da Formação'}
-                    {!isAdmin && <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full border border-purple-500/20">Beta</span>}
+                    Ferramentas da Formação
+                    <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full border border-purple-500/20">Beta</span>
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {(isAdmin ? [
-                        {
-                            title: 'Gestão de Usuários',
-                            desc: 'Gerencie permissões, exclua contas e veja estatísticas.',
-                            icon: Users,
-                            color: 'bg-red-500',
-                            status: 'Gerenciar',
-                            link: '/dashboard/admin/users'
-                        },
-                        {
-                            title: 'Estatísticas Globais',
-                            desc: 'Relatórios detalhados de engajamento e vendas.',
-                            icon: BarChart3,
-                            color: 'bg-blue-500',
-                            status: 'Ver Relatórios',
-                            link: '/dashboard/stats'
-                        },
-                        {
-                            title: 'Configurações',
-                            desc: 'Ajuste parâmetros globais da plataforma Rafinha.AI.',
-                            icon: Settings,
-                            color: 'bg-gray-600',
-                            status: 'Ajustar',
-                            link: '/dashboard/settings'
-                        }
-                    ] : tools).map((tool, i) => (
+                    {tools.map((tool, i) => (
                         <Link
                             key={i}
                             href={tool.link || '#'}
                             className="group relative bg-white/5 border border-white/5 hover:border-white/20 rounded-3xl p-6 transition-all hover:-translate-y-1 overflow-hidden"
                         >
                             {/* Subtle gradient hover effect */}
-                            <div className={`absolute inset-0 bg-gradient-to-br ${isAdmin ? 'from-red-600/5' : 'from-purple-600/5'} to-transparent opacity-0 group-hover:opacity-100 transition-opacity`}></div>
+                            <div className="absolute inset-0 bg-gradient-to-br from-purple-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
                             <div className="relative z-10">
                                 <div className={`w-12 h-12 rounded-2xl ${tool.color} flex items-center justify-center mb-6 shadow-lg shadow-black/20 group-hover:scale-110 transition-transform`}>
@@ -300,7 +259,7 @@ export default function Dashboard() {
                                 <p className="text-gray-400 text-sm mb-6 leading-relaxed">
                                     {tool.desc}
                                 </p>
-                                <div className={`w-full py-3 rounded-xl bg-white/5 group-hover:bg-white/10 text-white font-medium text-sm transition-all border border-white/5 flex items-center justify-center gap-2 ${isAdmin ? 'group-hover:text-red-400' : 'group-hover:text-purple-400'}`}>
+                                <div className="w-full py-3 rounded-xl bg-white/5 group-hover:bg-white/10 text-white font-medium text-sm transition-all border border-white/5 flex items-center justify-center gap-2 group-hover:text-purple-400">
                                     {tool.status}
                                     <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
                                 </div>

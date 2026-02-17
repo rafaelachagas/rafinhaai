@@ -42,6 +42,8 @@ export default function Dashboard() {
         );
     }
 
+    const isAdmin = profile?.role === 'admin';
+
     return (
         <div className="min-h-screen bg-[#F7F8FA] text-[#1B1D21] font-sans flex">
 

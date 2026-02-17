@@ -2,37 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import {
-    Sparkles,
-    BarChart3,
     Users,
-    Target,
-    ShieldCheck,
-    ArrowLeft,
-    Shield,
-    Settings,
     TrendingUp,
     Activity,
-    ChevronRight,
-    LayoutDashboard,
-    LogOut,
-    Sun,
-    Moon,
-    Bell
+    Zap
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
+import { Header } from '@/components/Header';
 
 export default function AdminDashboard() {
     const router = useRouter();
-    const { isDark, toggleTheme, profile, loading: themeLoading } = useTheme();
+    const { profile, loading: themeLoading, isDark } = useTheme();
     const [loading, setLoading] = useState(true);
-    const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [stats, setStats] = useState({
         totalUsers: 0,
-        activeToday: 0,
-        growth: '+12%'
+        salesToday: '1.250'
     });
 
     useEffect(() => {
@@ -53,165 +39,65 @@ export default function AdminDashboard() {
         checkAdmin();
     }, [profile, themeLoading, router]);
 
-    if (loading || themeLoading) {
-        return (
-            <div className={`min-h-screen flex items-center justify-center ${isDark ? 'bg-[#0A0113]' : 'bg-gray-50'}`}>
-                <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-            </div>
-        );
-    }
+    if (loading || themeLoading) return null;
 
     return (
-        <div className={`min-h-screen ${isDark ? 'bg-[#050505] text-white' : 'bg-gray-50 text-gray-900'} selection:bg-red-500/30 font-sans`}>
-            {/* Sidebar - Desktop */}
-            <aside className={`fixed left-0 top-0 h-full w-64 ${isDark ? 'bg-white/[0.02] border-r border-white/5' : 'bg-white border-r border-gray-200'} hidden lg:flex flex-col p-6`}>
-                <div className="flex items-center gap-3 mb-10 px-2">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center shadow-lg shadow-red-500/20">
-                        <ShieldCheck className="text-white w-6 h-6" />
+        <div className={`flex-1 flex flex-col p-4 lg:p-8 max-w-[1600px] mx-auto w-full min-h-screen ${isDark ? 'bg-[#0F0F0F] text-white' : 'bg-gray-50 text-gray-900'} transition-colors duration-300`}>
+            <Header
+                profile={profile}
+                unreadCount={0}
+                searchPlaceholder="Pesquisar em todo o sistema..."
+            />
+
+            {/* Central Control Card - ORANGE */}
+            <section className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#FF754C] to-[#FF5C00] p-10 lg:p-14 text-white mb-10 shadow-2xl shadow-[#FF754C]/20">
+                <div className="max-w-2xl space-y-6 relative z-10">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-widest">
+                        <Zap size={12} />
+                        Central de Controle
                     </div>
-                    <span className="font-bold text-xl tracking-tight">Painel Admin</span>
-                </div>
-
-                <nav className="flex-1 space-y-2">
-                    <Link href="/dashboard/admin" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm bg-white/5 text-white active cursor-pointer">
-                        <LayoutDashboard size={20} />
-                        <span>Resumo Geral</span>
-                    </Link>
-                    <Link href="/dashboard/admin/users" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer">
-                        <Users size={20} />
-                        <span>Gestão de Usuários</span>
-                    </Link>
-                    <Link href="/dashboard/admin/stats" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer">
-                        <BarChart3 size={20} />
-                        <span>Métricas de Vendas</span>
-                    </Link>
-                    <Link href="/dashboard/admin/settings" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer">
-                        <Settings size={20} />
-                        <span>Configurações</span>
-                    </Link>
-                </nav>
-
-                <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-400 hover:bg-blue-400/10 transition-all text-sm mt-auto mb-2">
-                    <ArrowLeft size={16} />
-                    Visão do Aluno
-                </Link>
-            </aside>
-
-            {/* Main Content */}
-            <main className="lg:ml-64 p-4 lg:p-10">
-                {/* Header */}
-                <header className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6">
-                    <div>
-                        <div className="flex items-center gap-2 text-red-500 text-xs font-bold uppercase tracking-widest mb-2">
-                            <Shield size={14} />
-                            Administrador da Plataforma
-                        </div>
-                        <h2 className="text-3xl font-bold">Olá, {profile?.full_name?.split(' ')[0]} 👋</h2>
-                        <p className="text-gray-400">Aqui está o pulso atual da sua plataforma.</p>
+                    <h1 className="text-4xl lg:text-5xl font-bold leading-tight tracking-tight">
+                        Olá, {profile?.full_name?.split(' ')[0] || 'Admin'} 👋
+                    </h1>
+                    <p className="text-lg opacity-90 leading-relaxed font-medium">
+                        Sua plataforma está em pleno crescimento. Confira os últimos dados e interaja com seus alunos.
+                    </p>
+                    <div className="flex flex-wrap gap-4 pt-4">
+                        <button className="px-8 py-4 bg-white text-[#FF754C] rounded-2xl font-bold text-sm shadow-xl hover:scale-105 transition-all">
+                            Novo Comunicado
+                        </button>
+                        <button className="px-8 py-4 bg-white/10 text-white backdrop-blur-md border border-white/20 rounded-2xl font-bold text-sm hover:bg-white/20 transition-all">
+                            Logs do Sistema
+                        </button>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-3">
-                            <button className={`p-2 rounded-xl border transition-colors relative cursor-pointer ${isDark ? 'bg-white/5 border-white/10 text-gray-400 hover:text-white' : 'bg-gray-50 border-gray-200 text-gray-500 hover:text-gray-900'}`}>
-                                <Bell size={18} />
-                                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-transparent"></span>
-                            </button>
-                        </div>
-                        <div className="relative">
-                            <button
-                                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                                className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer"
-                            >
-                                <Users className="w-6 h-6 text-gray-400" />
-                            </button>
-
-                            {userMenuOpen && (
-                                <div className={`absolute right-0 mt-2 w-48 rounded-2xl border shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in duration-200 ${isDark ? 'bg-[#120222] border-white/10' : 'bg-white border-gray-100'}`}>
-                                    <div className="p-2 space-y-1">
-                                        <button
-                                            onClick={() => router.push('/dashboard/profile')}
-                                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors cursor-pointer ${isDark ? 'hover:bg-white/5 text-gray-300' : 'hover:bg-gray-50 text-gray-700'}`}
-                                        >
-                                            <ShieldCheck size={18} className="text-red-400" />
-                                            Meu Perfil
-                                        </button>
-                                        <button
-                                            onClick={async () => {
-                                                await supabase.auth.signOut();
-                                                router.push('/login');
-                                            }}
-                                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors cursor-pointer ${isDark ? 'hover:bg-red-500/10 text-red-400' : 'hover:bg-red-50 text-red-600'}`}
-                                        >
-                                            <LogOut size={18} />
-                                            Sair (Logout)
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </header>
-
-                {/* Platform Overview Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-12">
-                    {[
-                        { label: 'Total de Alunos', value: stats.totalUsers.toString(), icon: Users, color: 'text-blue-400', trend: '+5% este mês' },
-                        { label: 'Lucro Estimado', value: 'R$ 12.450', icon: TrendingUp, color: 'text-emerald-400', trend: '+15.2%' },
-                        { label: 'Engajamento', value: '78%', icon: Activity, color: 'text-purple-400', trend: 'Estável' },
-                        { label: 'Conversão', value: '3.2%', icon: Target, color: 'text-amber-400', trend: '+0.4%' },
-                    ].map((stat, i) => (
-                        <div key={i} className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-sm hover:bg-white/10 transition-all group">
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="p-2 rounded-xl bg-white/5 group-hover:scale-110 transition-transform">
-                                    <stat.icon className={`w-5 h-5 ${stat.color}`} />
-                                </div>
-                                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-full">{stat.trend}</span>
-                            </div>
-                            <p className="text-gray-400 text-sm mb-1">{stat.label}</p>
-                            <h3 className="text-3xl font-bold tracking-tight">{stat.value}</h3>
-                        </div>
-                    ))}
                 </div>
+                {/* Abstract Icons for background */}
+                <Activity className="absolute right-[-20px] top-[-20px] w-64 h-64 opacity-10 rotate-12" />
+                <Users className="absolute right-40 bottom-[-40px] w-48 h-48 opacity-5 -rotate-12" />
+            </section>
 
-                {/* Section Title */}
-                <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                    Gestão Rápida
-                </h3>
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 gap-8 mb-12">
+                <AdminStatCard label="TOTAL DE ALUNOS" value={stats.totalUsers.toString()} trend="+5%" icon={<Users size={20} />} color="text-blue-500" bg={isDark ? "bg-blue-500/10" : "bg-blue-50"} isDark={isDark} />
+            </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Link href="/dashboard/admin/users" className="group relative bg-white/5 border border-white/5 hover:border-red-500/20 rounded-3xl p-8 transition-all hover:-translate-y-1 overflow-hidden cursor-pointer">
-                        <div className="absolute inset-0 bg-gradient-to-br from-red-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <div className="relative z-10">
-                            <div className="w-14 h-14 rounded-2xl bg-red-500 flex items-center justify-center mb-6 shadow-lg shadow-red-500/20">
-                                <Users className="text-white w-7 h-7" />
-                            </div>
-                            <h4 className="text-xl font-bold mb-2">Gestão de Usuários</h4>
-                            <p className="text-gray-400 text-sm mb-8 leading-relaxed max-w-sm">
-                                Controle total sobre acessos, cargos e novos cadastros. Gerencie permissões de Aluno, Moderador e Admin.
-                            </p>
-                            <div className="flex items-center text-xs font-bold uppercase tracking-widest text-red-500 gap-2">
-                                Acessar Painel <ChevronRight size={16} />
-                            </div>
-                        </div>
-                    </Link>
-
-                    <Link href="/dashboard/admin/settings" className="group relative bg-white/5 border border-white/5 hover:border-blue-500/20 rounded-3xl p-8 transition-all hover:-translate-y-1 overflow-hidden cursor-pointer">
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <div className="relative z-10">
-                            <div className="w-14 h-14 rounded-2xl bg-blue-500 flex items-center justify-center mb-6 shadow-lg shadow-blue-500/20">
-                                <Settings className="text-white w-7 h-7" />
-                            </div>
-                            <h4 className="text-xl font-bold mb-2">Configurações Globais</h4>
-                            <p className="text-gray-400 text-sm mb-8 leading-relaxed max-w-sm">
-                                Ajuste parâmetros do sistema, integrações com Hotmart e chaves da IA do Google.
-                            </p>
-                            <div className="flex items-center text-xs font-bold uppercase tracking-widest text-blue-500 gap-2">
-                                Configurar <ChevronRight size={16} />
-                            </div>
-                        </div>
-                    </Link>
-                </div>
-            </main>
         </div>
     );
 }
 
+function AdminStatCard({ label, value, trend, icon, color, bg, isDark }: { label: string, value: string, trend: string, icon: any, color: string, bg: string, isDark: boolean }) {
+    return (
+        <div className={`${isDark ? 'bg-[#1B1D21] border-white/5' : 'bg-white border-gray-100'} p-8 rounded-[2.5rem] border flex items-start gap-6 shadow-sm hover:shadow-xl transition-all group`}>
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white ${color} ${bg} font-bold transform group-hover:scale-110 transition-transform`}>
+                {icon}
+            </div>
+            <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{label}</p>
+                    <span className={`text-[10px] font-bold ${isDark ? 'bg-emerald-500/10 text-emerald-500' : 'bg-emerald-50 text-emerald-600'} px-2 py-1 rounded-full`}>{trend}</span>
+                </div>
+                <h4 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>{value}</h4>
+            </div>
+        </div>
+    );
+}

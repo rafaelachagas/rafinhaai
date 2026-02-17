@@ -11,6 +11,7 @@ interface UserProfile {
     email: string | null;
     role: UserRole;
     full_name?: string | null;
+    avatar_url?: string | null;
 }
 
 interface ThemeContextType {
@@ -19,6 +20,7 @@ interface ThemeContextType {
     isDark: boolean;
     profile: UserProfile | null;
     loading: boolean;
+    refreshProfile: () => Promise<void>;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -84,12 +86,28 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('theme_preference', newTheme);
     };
 
+    const refreshProfile = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+            const { data: profileData } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+
+            if (profileData) {
+                setProfile(profileData as UserProfile);
+            }
+        }
+    };
+
     const value = {
         theme,
         toggleTheme,
         isDark: theme === 'dark',
         profile,
-        loading
+        loading,
+        refreshProfile
     };
 
     return (

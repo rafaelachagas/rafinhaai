@@ -60,21 +60,21 @@ export default function Dashboard() {
                     <div>
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 px-2">Overview</p>
                         <nav className="space-y-1">
-                            <NavItem icon={<LayoutDashboard size={20} />} label="Dashboard" active />
-                            <NavItem icon={<Mail size={20} />} label="Inbox" />
-                            <NavItem icon={<BookOpen size={20} />} label="Lesson" />
-                            <NavItem icon={<PenTool size={20} />} label="Task" />
-                            <NavItem icon={<Users size={20} />} label="Group" />
+                            <NavItem icon={<LayoutDashboard size={20} />} label="Início" active />
+                            <NavItem icon={<Mail size={20} />} label="Mensagens" />
+                            <NavItem icon={<BookOpen size={20} />} label="Aulas" />
+                            <NavItem icon={<PenTool size={20} />} label="Tarefas" />
+                            <NavItem icon={<Users size={20} />} label="Comunidade" />
                         </nav>
                     </div>
 
                     <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 px-2">Settings</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 px-2">Configurações</p>
                         <nav className="space-y-1">
-                            <NavItem icon={<Settings size={20} />} label="Setting" />
+                            <NavItem icon={<Settings size={20} />} label="Ajustes" />
                             <Link href="#" onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-red-50 hover:text-red-500 transition-all text-sm font-medium">
                                 <LogOut size={20} />
-                                <span>Logout</span>
+                                <span>Sair</span>
                             </Link>
                         </nav>
                     </div>

@@ -7,12 +7,14 @@ import { useTheme } from '@/context/ThemeContext';
 export default function ThemeToggle() {
     const { isDark, toggleTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
+    const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+    const isImmersive = pathname.includes('/dashboard/courses') || pathname.includes('/dashboard/watch');
 
     useEffect(() => {
         setMounted(true);
     }, []);
 
-    if (!mounted) return null;
+    if (!mounted || isImmersive) return null;
 
     return (
         <button

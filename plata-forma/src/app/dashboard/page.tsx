@@ -18,6 +18,10 @@ export default function Dashboard() {
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [currentSlide, setCurrentSlide] = useState(0);
     const [mounted, setMounted] = useState(false);
+    const [courses, setCourses] = useState<any[]>([]);
+    const [progress, setProgress] = useState<any[]>([]);
+    const [continueWatching, setContinueWatching] = useState<any[]>([]);
+    const [overallProgress, setOverallProgress] = useState(0);
 
     useEffect(() => {
         setMounted(true);
@@ -43,9 +47,75 @@ export default function Dashboard() {
             } else {
                 setLoading(false);
                 fetchUnreadCount();
+                fetchProgressData();
             }
         }
     }, [profile, themeLoading, router]);
+
+    async function fetchProgressData() {
+        if (!profile?.id) return;
+
+        // Fetch courses with modules and lessons
+        const { data: coursesData } = await supabase
+            .from('courses')
+            .select(`
+                *,
+                modules (
+                    *,
+                    lessons (*)
+                )
+            `)
+            .eq('is_active', true)
+            .order('order_index');
+
+        // Fetch user progress
+        const { data: progressData } = await supabase
+            .from('user_lesson_progress')
+            .select('lesson_id, completed, last_position_seconds, updated_at')
+            .eq('user_id', profile.id);
+
+        if (!coursesData || !progressData) return;
+
+        setCourses(coursesData);
+        setProgress(progressData);
+
+        // Calculate "Continuar Assistindo"
+        const inProgress = coursesData.flatMap(course =>
+            (course.modules || []).filter((module: any) => {
+                const publishedLessons = module.lessons?.filter((l: any) => l.is_published) || [];
+                if (publishedLessons.length === 0) return false;
+
+                const completedCount = publishedLessons.filter((l: any) =>
+                    progressData.some(p => p.lesson_id === l.id && p.completed)
+                ).length;
+
+                const hasStarted = publishedLessons.some((l: any) =>
+                    progressData.some(p => p.lesson_id === l.id)
+                );
+
+                return hasStarted && completedCount < publishedLessons.length;
+            })
+        );
+
+        // Sort by last_watched_at of lessons
+        inProgress.sort((a, b) => {
+            const getLatestDate = (mod: any) => {
+                const dates = mod.lessons?.map((l: any) => {
+                    const prog = progressData.find(p => p.lesson_id === l.id);
+                    return prog?.updated_at ? new Date(prog.updated_at).getTime() : 0;
+                }) || [];
+                return Math.max(0, ...dates);
+            };
+            return getLatestDate(b) - getLatestDate(a);
+        });
+
+        setContinueWatching(inProgress.slice(0, 3)); // Show top 3 on dashboard
+
+        // Calculate overall progress
+        const totalLessons = coursesData.flatMap(c => c.modules || []).flatMap((m: any) => m.lessons || []).filter(l => l.is_published).length;
+        const totalCompleted = progressData.filter(p => p.completed).length;
+        setOverallProgress(totalLessons > 0 ? Math.round((totalCompleted / totalLessons) * 100) : 0);
+    }
 
     async function fetchUnreadCount() {
         if (!profile?.id) return;
@@ -170,12 +240,13 @@ export default function Dashboard() {
                                         stroke="#6C5DD3"
                                         strokeWidth="12"
                                         strokeDasharray="440"
-                                        strokeDashoffset="300"
+                                        strokeDashoffset={440 - (440 * overallProgress / 100)}
                                         strokeLinecap="round"
+                                        className="transition-all duration-1000 ease-out"
                                     />
                                 </svg>
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <span className="text-4xl font-bold text-[#6C5DD3]">32%</span>
+                                    <span className="text-4xl font-bold text-[#6C5DD3]">{overallProgress}%</span>
                                 </div>
                             </div>
                             <h4 className={`text-lg font-bold text-center ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>Bom dia, {profile?.full_name?.split(' ')[0] || 'Aluno'}! 🔥</h4>
@@ -205,9 +276,43 @@ export default function Dashboard() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <VideoCard title="IA para Criadores de Conteúdo" mentor="Leonardo Samsul" image="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80" tag="IA & DESIGN" isDark={isDark} />
-                        <VideoCard title="Otimizando sua Bio Strategicamente" mentor="Rafael Chagas" image="https://images.unsplash.com/photo-1551434678-e076c223a692?w=800&q=80" tag="MARKETING" isDark={isDark} />
-                        <VideoCard title="Análise de Métricas no Dashboard" mentor="Ana Paula" image="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80" tag="ESTRATÉGIA" isDark={isDark} />
+                        {continueWatching.length > 0 ? (
+                            continueWatching.map((module) => {
+                                const publishedLessons = module.lessons?.filter((l: any) => l.is_published) || [];
+                                const firstLessonId = publishedLessons[0]?.id;
+
+                                // Calculate module progress %
+                                let totalSecondsWatched = 0;
+                                let totalModuleSeconds = 0;
+                                publishedLessons.forEach((l: any) => {
+                                    const lessonDurationSec = (l.duration_minutes || 10) * 60; // Fallback to 10 min
+                                    totalModuleSeconds += lessonDurationSec;
+                                    const lp = progress.find(p => p.lesson_id === l.id);
+                                    if (lp) {
+                                        if (lp.completed) totalSecondsWatched += lessonDurationSec;
+                                        else if (lp.last_position_seconds) totalSecondsWatched += Math.min(lp.last_position_seconds, lessonDurationSec);
+                                    }
+                                });
+                                const modPercent = Math.round((totalSecondsWatched / totalModuleSeconds) * 100);
+
+                                return (
+                                    <div key={module.id} onClick={() => firstLessonId && router.push(`/dashboard/watch/${firstLessonId}`)}>
+                                        <VideoCard
+                                            title={module.title}
+                                            mentor="Mentor" // Potentially fetch actual mentor if available
+                                            image={module.cover_image_url}
+                                            tag="CURSO"
+                                            isDark={isDark}
+                                            progress={modPercent}
+                                        />
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <div className="col-span-full py-10 text-center bg-gray-50/5 rounded-3xl border border-dashed border-gray-50/10">
+                                <p className="text-gray-400">Você ainda não começou nenhum curso. Comece agora para salvar seu progresso!</p>
+                            </div>
+                        )}
                     </div>
                 </section>
             </main>
@@ -230,20 +335,32 @@ function ProgressCard({ label, value, category, color, isDark }: { label: string
     );
 }
 
-function VideoCard({ title, mentor, image, tag, isDark }: { title: string, mentor: string, image: string, tag: string, isDark?: boolean }) {
+function VideoCard({ title, mentor, image, tag, isDark, progress }: { title: string, mentor: string, image: string, tag: string, isDark?: boolean, progress?: number }) {
     return (
         <div className="group cursor-pointer">
-            <div className="relative aspect-video rounded-[2rem] overflow-hidden mb-4">
-                <img src={image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+            <div className="relative aspect-video rounded-[2rem] overflow-hidden mb-4 bg-gray-800">
+                {image ? (
+                    <img src={image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-600 to-blue-600">
+                        <PlayCircle className="text-white/20 w-12 h-12" />
+                    </div>
+                )}
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
                     <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-xl">
                         <Play className="w-5 h-5 text-[#6C5DD3] ml-1" />
                     </div>
                 </div>
-                <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-xl flex items-center gap-2 text-[10px] font-bold">
-                    <Clock size={12} className="text-[#6C5DD3]" />
-                    12:45 min
-                </div>
+
+                {/* Progress Bar */}
+                {typeof progress === 'number' && (
+                    <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-black/40">
+                        <div
+                            className="h-full bg-[#6C5DD3] transition-all duration-1000"
+                            style={{ width: `${progress}%` }}
+                        />
+                    </div>
+                )}
             </div>
             <div className="space-y-2">
                 <span className="text-[10px] font-bold text-[#6C5DD3] uppercase tracking-widest">{tag}</span>

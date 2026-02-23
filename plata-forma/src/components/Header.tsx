@@ -85,7 +85,7 @@ export function Header({
     };
 
     return (
-        <header className="flex items-center justify-between gap-4 mb-8">
+        <header className="flex items-center justify-between gap-4 mb-10 mt-20 lg:mt-0">
             <div className="relative flex-1 max-w-2xl" ref={searchRef}>
                 <Search className={`absolute left-4 top-1/2 -translate-y-1/2 ${isDark ? 'text-gray-500' : 'text-gray-400'} transition-colors`} size={18} />
                 <input

@@ -210,7 +210,7 @@ export default function UserManagementPage() {
 
                 {/* Content Table/Grid */}
                 <div className={`${isDark ? 'bg-[#1B1D21] border-white/5' : 'bg-white border-gray-100'} rounded-3xl border shadow-sm overflow-hidden transition-colors duration-300`}>
-                    <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="relative flex-1 max-w-md">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                             <input
@@ -230,100 +230,98 @@ export default function UserManagementPage() {
                     </div>
 
                     {/* Users List */}
-                    <div className={`overflow-hidden rounded-[2rem] border ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200 shadow-sm'}`}>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-50 text-gray-500'}`}>
-                                    <tr>
-                                        <th className="px-6 py-4">Usuário</th>
-                                        <th className="px-6 py-4">Cargo</th>
-                                        <th className="px-6 py-4">Cadastro</th>
-                                        <th className="px-6 py-4 text-right">Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-gray-100'}`}>
-                                    {filteredUsers.map((user) => (
-                                        <tr key={user.id} className={`transition-colors ${isDark ? 'hover:bg-white/[0.02]' : 'hover:bg-gray-50'}`}>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF754C] to-[#7D1AB8] flex items-center justify-center text-white font-bold text-sm">
-                                                        {(user.full_name || user.email || '?')[0].toUpperCase()}
-                                                    </div>
-                                                    <div>
-                                                        <p className={`font-bold ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>{user.full_name || 'Usuário sem nome'}</p>
-                                                        <div className="flex items-center gap-2">
-                                                            <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{user.email}</p>
-                                                            {user.cpf && (
-                                                                <>
-                                                                    <span className="w-1 h-1 rounded-full bg-gray-600" />
-                                                                    <p className={`text-[10px] font-medium ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>CPF: {user.cpf}</p>
-                                                                </>
-                                                            )}
-                                                        </div>
+                    <div className="overflow-x-auto mt-2">
+                        <table className="w-full text-left">
+                            <thead className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-50 text-gray-500'}`}>
+                                <tr>
+                                    <th className="px-6 py-4">Usuário</th>
+                                    <th className="px-6 py-4">Cargo</th>
+                                    <th className="px-6 py-4">Cadastro</th>
+                                    <th className="px-6 py-4 text-right">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-gray-100'}`}>
+                                {filteredUsers.map((user) => (
+                                    <tr key={user.id} className={`transition-colors ${isDark ? 'hover:bg-white/[0.02]' : 'hover:bg-gray-50'}`}>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF754C] to-[#7D1AB8] flex items-center justify-center text-white font-bold text-sm">
+                                                    {(user.full_name || user.email || '?')[0].toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <p className={`font-bold ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>{user.full_name || 'Usuário sem nome'}</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{user.email}</p>
+                                                        {user.cpf && (
+                                                            <>
+                                                                <span className="w-1 h-1 rounded-full bg-gray-600" />
+                                                                <p className={`text-[10px] font-medium ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>CPF: {user.cpf}</p>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <select
-                                                    value={user.role}
-                                                    onChange={(e) => updateRole(user.id, user.email, e.target.value as UserRole)}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <select
+                                                value={user.role}
+                                                onChange={(e) => updateRole(user.id, user.email, e.target.value as UserRole)}
+                                                disabled={user.role === 'admin'}
+                                                className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border bg-transparent outline-none cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed ${user.role === 'admin'
+                                                    ? 'bg-red-500/10 text-red-500 border-red-500/20'
+                                                    : user.role === 'moderator'
+                                                        ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                                                        : 'bg-[#FF754C]/10 text-[#FF754C] border-[#FF754C]/20'
+                                                    }`}
+                                            >
+                                                <option value="user" className={isDark ? 'bg-[#0A0113]' : 'bg-white'}>Aluno</option>
+                                                <option value="moderator" className={isDark ? 'bg-[#0A0113]' : 'bg-white'}>Moderador</option>
+                                            </select>
+                                            {user.role === 'admin' && (
+                                                <div className="mt-1 flex items-center gap-1 text-[8px] text-gray-500 font-bold uppercase pointer-events-none">
+                                                    <Lock size={8} /> Admin Imutável
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className={`flex items-center gap-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                                <Calendar size={14} />
+                                                {new Date(user.created_at).toLocaleDateString()}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    onClick={() => handleDeleteUser(user.id, user.email)}
                                                     disabled={user.role === 'admin'}
-                                                    className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border bg-transparent outline-none cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed ${user.role === 'admin'
-                                                        ? 'bg-red-500/10 text-red-500 border-red-500/20'
-                                                        : user.role === 'moderator'
-                                                            ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
-                                                            : 'bg-[#FF754C]/10 text-[#FF754C] border-[#FF754C]/20'
-                                                        }`}
+                                                    style={{ cursor: user.role === 'admin' ? 'not-allowed' : 'pointer' }}
+                                                    className={`p-2 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${isDark ? 'hover:bg-red-500/10 text-gray-400 hover:text-red-500' : 'hover:bg-red-50 text-gray-500 hover:text-red-600'}`}
+                                                    title={user.role === 'admin' ? "Administradores só podem ser excluídos via Supabase" : "Excluir Usuário"}
                                                 >
-                                                    <option value="user" className={isDark ? 'bg-[#0A0113]' : 'bg-white'}>Aluno</option>
-                                                    <option value="moderator" className={isDark ? 'bg-[#0A0113]' : 'bg-white'}>Moderador</option>
-                                                </select>
-                                                {user.role === 'admin' && (
-                                                    <div className="mt-1 flex items-center gap-1 text-[8px] text-gray-500 font-bold uppercase pointer-events-none">
-                                                        <Lock size={8} /> Admin Imutável
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className={`flex items-center gap-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                                    <Calendar size={14} />
-                                                    {new Date(user.created_at).toLocaleDateString()}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <button
-                                                        onClick={() => handleDeleteUser(user.id, user.email)}
-                                                        disabled={user.role === 'admin'}
-                                                        style={{ cursor: user.role === 'admin' ? 'not-allowed' : 'pointer' }}
-                                                        className={`p-2 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${isDark ? 'hover:bg-red-500/10 text-gray-400 hover:text-red-500' : 'hover:bg-red-50 text-gray-500 hover:text-red-600'}`}
-                                                        title={user.role === 'admin' ? "Administradores só podem ser excluídos via Supabase" : "Excluir Usuário"}
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleEditClick(user)}
-                                                        style={{ cursor: 'pointer' }}
-                                                        className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
-                                                        title="Editar Usuário"
-                                                    >
-                                                        <MoreVertical size={18} />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {filteredUsers.length === 0 && (
-                                        <tr>
-                                            <td colSpan={4} className="px-6 py-20 text-center">
-                                                <Users size={48} className="mx-auto mb-4 text-gray-600 opacity-20" />
-                                                <p className={isDark ? 'text-gray-400' : 'text-gray-500'}>Nenhum usuário encontrado.</p>
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                                                    <Trash2 size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleEditClick(user)}
+                                                    style={{ cursor: 'pointer' }}
+                                                    className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
+                                                    title="Editar Usuário"
+                                                >
+                                                    <MoreVertical size={18} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {filteredUsers.length === 0 && (
+                                    <tr>
+                                        <td colSpan={4} className="px-6 py-20 text-center">
+                                            <Users size={48} className="mx-auto mb-4 text-gray-600 opacity-20" />
+                                            <p className={isDark ? 'text-gray-400' : 'text-gray-500'}>Nenhum usuário encontrado.</p>
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 

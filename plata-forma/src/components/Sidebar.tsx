@@ -116,7 +116,7 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
                                     <NavItem icon={<LayoutDashboard size={24} />} label="Início" href="/dashboard" active={pathname === '/dashboard'} isDark={forcedDark} onClick={() => setIsMobileOpen(false)} />
                                     <NavItem icon={<Mail size={24} />} label="Mensagens" href="/dashboard/messages" active={pathname === '/dashboard/messages'} isDark={forcedDark} onClick={() => setIsMobileOpen(false)} />
                                     <NavItem icon={<PlayCircle size={24} />} label="Aulas" href="/dashboard/courses" active={pathname.startsWith('/dashboard/courses') || pathname.startsWith('/dashboard/watch')} isDark={forcedDark} onClick={() => setIsMobileOpen(false)} />
-                                    <NavItem icon={<PenTool size={24} />} label="Ferramentas" href="#" active={false} isDark={forcedDark} onClick={() => setIsMobileOpen(false)} />
+                                    <NavItem icon={<PenTool size={24} />} label="Ferramentas" href="/dashboard/tools" active={pathname.startsWith('/dashboard/tools')} isDark={forcedDark} onClick={() => setIsMobileOpen(false)} />
                                     <NavItem icon={<CheckSquare size={24} />} label="Tarefas" href="#" active={false} isDark={forcedDark} onClick={() => setIsMobileOpen(false)} />
                                 </>
                             )}
@@ -231,7 +231,7 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
                                             <NavItem icon={<LayoutDashboard size={24} />} label="Início" href="/dashboard" active={pathname === '/dashboard'} isDark={forcedDark} isCollapsed={isCollapsed} />
                                             <NavItem icon={<Mail size={24} />} label="Mensagens" href="/dashboard/messages" active={pathname === '/dashboard/messages'} isDark={forcedDark} isCollapsed={isCollapsed} />
                                             <NavItem icon={<PlayCircle size={24} />} label="Aulas" href="/dashboard/courses" active={pathname.startsWith('/dashboard/courses') || pathname.startsWith('/dashboard/watch')} isDark={forcedDark} isCollapsed={isCollapsed} />
-                                            <NavItem icon={<PenTool size={24} />} label="Ferramentas" href="#" active={false} isDark={forcedDark} isCollapsed={isCollapsed} />
+                                            <NavItem icon={<PenTool size={24} />} label="Ferramentas" href="/dashboard/tools" active={pathname.startsWith('/dashboard/tools')} isDark={forcedDark} isCollapsed={isCollapsed} />
                                             <NavItem icon={<CheckSquare size={24} />} label="Tarefas" href="#" active={false} isDark={forcedDark} isCollapsed={isCollapsed} />
                                         </>
                                     )}
@@ -276,16 +276,7 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
                             </div>
                         </div>
 
-                        {/* Upgrade card */}
-                        {!isAdminRoute && !isCollapsed && !immersive && (
-                            <div className="mt-auto p-4 bg-[#F2F0FF] rounded-2xl border border-[#6C5DD3]/10">
-                                <p className="text-xs font-bold text-[#6C5DD3] mb-1">Upgrade Pro</p>
-                                <p className="text-[10px] text-gray-500 leading-relaxed mb-3">Ganhe acesso a todas as ferramentas de IA.</p>
-                                <button className="w-full py-2 bg-[#6C5DD3] text-white text-[10px] font-bold rounded-lg hover:bg-[#5a4cb3] transition-colors">
-                                    Upgrade Now
-                                </button>
-                            </div>
-                        )}
+
                     </>
                 )}
             </aside>

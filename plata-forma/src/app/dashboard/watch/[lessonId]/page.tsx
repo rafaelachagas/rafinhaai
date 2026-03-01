@@ -5,6 +5,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { ArrowLeft, CheckCircle2, Check, Play, ChevronRight, Clock, ThumbsUp, Download, FileText, Image as ImageIcon, BookOpen, Upload } from 'lucide-react';
+import { bbcodeToHtml } from '@/utils/bbcode';
 import VideoPlayer from '@/components/VideoPlayer';
 
 interface Lesson {
@@ -80,6 +81,7 @@ export default function LessonPage() {
             .from('modules')
             .select(`*, lessons (*)`)
             .eq('id', lessonData.module_id)
+            .order('order_index', { foreignTable: 'lessons' })
             .single();
 
         if (moduleError || !moduleData) {
@@ -196,39 +198,6 @@ export default function LessonPage() {
         }
     }
 
-    function renderContent(text: string) {
-        if (!text) return null;
-
-        // Basic BBCode to HTML converter
-        let html = text
-            .replace(/\[b\](.*?)\[\/b\]/g, '<strong>$1</strong>')
-            .replace(/\[i\](.*?)\[\/i\]/g, '<em>$1</em>')
-            .replace(/\[u\](.*?)\[\/u\]/g, '<u>$1</u>')
-            .replace(/\[url=(.*?)\](.*?)\[\/url\]/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-[#6C5DD3] hover:underline font-bold">$2</a>')
-            .replace(/\[url\](.*?)\[\/url\]/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-[#6C5DD3] hover:underline font-bold">$1</a>')
-            .replace(/\[img\](.*?)\[\/img\]/g, '<img src="$1" alt="Content image" class="rounded-xl my-4 max-w-full h-auto shadow-lg" />')
-            .replace(/\[pdf\](.*?)\[\/pdf\]/g, `
-                <a href="$1" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all my-4 group">
-                    <div class="p-2 bg-red-500/20 text-red-500 rounded-lg group-hover:scale-110 transition-transform">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                    </div>
-                    <div>
-                        <p class="font-bold text-white">Download Material PDF</p>
-                        <p class="text-xs text-gray-400">Clique para abrir em nova aba</p>
-                    </div>
-                </a>
-            `)
-            .replace(/\[left\](.*?)\[\/left\]/g, '<div class="text-left">$1</div>')
-            .replace(/\[center\](.*?)\[\/center\]/g, '<div class="text-center">$1</div>')
-            .replace(/\[right\](.*?)\[\/right\]/g, '<div class="text-right">$1</div>')
-            .replace(/\[list\]([\s\S]*?)\[\/list\]/g, (match, p1) => {
-                const items = p1.split(/\[\*\]/).filter(Boolean).map((item: string) => `<li class="mb-2 last:mb-0">${item.trim()}</li>`).join('');
-                return `<ul class="list-disc pl-6 my-4 space-y-1">${items}</ul>`;
-            })
-            .replace(/\n/g, '<br />');
-
-        return <div dangerouslySetInnerHTML={{ __html: html }} className="prose prose-invert max-w-none text-gray-300 leading-relaxed" />;
-    }
 
     if (loading || themeLoading || !lesson) {
         return (
@@ -258,30 +227,23 @@ export default function LessonPage() {
             <div className="w-full bg-black">
                 <div className="max-w-[1600px] mx-auto px-4 lg:px-12 pt-20 lg:pt-16 pb-6">
                     {/* Lesson Info - Refined Header */}
-                    <div className="mb-6">
+                    <div className={lesson.video_url?.trim() ? "mb-6" : "mb-12 pt-12"}>
                         <p className="text-xs text-[#6C5DD3] mb-1 uppercase tracking-wider font-semibold opacity-70">{module?.title}</p>
-                        <h1 className="text-xl lg:text-2xl font-bold text-white tracking-tight">
+                        <h1 className={`${lesson.video_url?.trim() ? "text-xl lg:text-2xl" : "text-3xl lg:text-5xl"} font-bold text-white tracking-tight`}>
                             {lesson.title}
                         </h1>
                     </div>
 
-                    <div className="aspect-video bg-black shadow-2xl rounded-xl overflow-hidden border border-white/5">
-                        {lesson.video_url ? (
+                    {lesson.video_url?.trim() && (
+                        <div className="aspect-video bg-black shadow-2xl rounded-xl overflow-hidden border border-white/5">
                             <VideoPlayer
                                 videoUrl={lesson.video_url}
                                 initialPosition={progress.find(p => p.lesson_id === lessonId)?.last_watched_position || 0}
                                 onProgress={handleVideoProgress}
                                 onComplete={markAsCompleted}
                             />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                                <div className="text-center">
-                                    <Play size={64} className="mx-auto mb-4 text-white/30" />
-                                    <p className="text-white/50">Vídeo não disponível</p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -332,9 +294,10 @@ export default function LessonPage() {
                 {/* Lesson Description - Now below buttons */}
                 {lesson.description && (
                     <div className="mb-10 max-w-4xl">
-                        <p className="text-gray-300 text-lg leading-relaxed">
-                            {lesson.description}
-                        </p>
+                        <div
+                            className="text-gray-300 leading-relaxed prose prose-invert max-w-none"
+                            dangerouslySetInnerHTML={{ __html: bbcodeToHtml(lesson.description) }}
+                        />
                     </div>
                 )}
 
@@ -348,9 +311,10 @@ export default function LessonPage() {
                                     <div className="w-1.5 h-6 bg-[#6C5DD3] rounded-full"></div>
                                     Conteúdo da Aula
                                 </h3>
-                                <div className="mb-0">
-                                    {renderContent(lesson.content)}
-                                </div>
+                                <div
+                                    className="mb-0 text-gray-300 leading-relaxed prose prose-invert max-w-none"
+                                    dangerouslySetInnerHTML={{ __html: bbcodeToHtml(lesson.content) }}
+                                />
                             </div>
                         )}
 
@@ -439,12 +403,14 @@ export default function LessonPage() {
                                             <h4 className={`font-bold text-lg truncate ${isCurrent ? 'text-white' : 'text-white/70 group-hover:text-white'}`}>
                                                 {l.title}
                                             </h4>
-                                            {l.duration_minutes && (
-                                                <span className="flex-shrink-0 text-white/40 text-xs font-medium flex items-center gap-1.5">
-                                                    <Clock size={12} />
-                                                    {l.duration_minutes}min
-                                                </span>
-                                            )}
+                                            <span className="flex-shrink-0 text-white/40 text-xs font-medium flex items-center gap-1.5">
+                                                {l.duration_minutes > 0 && (
+                                                    <>
+                                                        <Clock size={12} />
+                                                        {l.duration_minutes}min
+                                                    </>
+                                                )}
+                                            </span>
                                         </div>
                                         {l.description && (
                                             <p className="text-white/40 text-sm line-clamp-2 leading-relaxed">

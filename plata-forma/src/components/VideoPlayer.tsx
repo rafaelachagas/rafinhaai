@@ -165,97 +165,101 @@ export default function VideoPlayer({ videoUrl, initialPosition = 0, onProgress,
                 ) : (
                     <iframe
                         src={videoUrl}
-                        className="w-full h-full border-0"
-                        allow="autoplay"
+                        className="w-full h-full border-0 pointer-events-auto"
+                        allow="autoplay; fullscreen"
                     />
                 )}
             </div>
 
-            {/* Click Surface */}
-            <div
-                className="absolute inset-0 z-10 cursor-pointer"
-                onClick={togglePlay}
-            />
+            {/* Click Surface - YouTube Only */}
+            {isYouTube && (
+                <div
+                    className="absolute inset-0 z-10 cursor-pointer"
+                    onClick={togglePlay}
+                />
+            )}
 
-            {/* Custom Controls Overlay */}
-            <div className={`absolute inset-0 z-20 transition-opacity duration-300 pointer-events-none flex flex-col justify-end ${showControls ? 'opacity-100' : 'opacity-0'}`}>
-                {/* Big Center Icon on Pause */}
-                {!isPlaying && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center animate-in zoom-in">
-                            <Play size={40} className="text-white fill-white ml-2" />
+            {/* Custom Controls Overlay - YouTube Only */}
+            {isYouTube && (
+                <div className={`absolute inset-0 z-20 transition-opacity duration-300 pointer-events-none flex flex-col justify-end ${showControls ? 'opacity-100' : 'opacity-0'}`}>
+                    {/* Big Center Icon on Pause */}
+                    {!isPlaying && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center animate-in zoom-in">
+                                <Play size={40} className="text-white fill-white ml-2" />
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {/* Bottom Bar */}
-                <div className="bg-gradient-to-t from-black/90 via-black/40 to-transparent p-6 pointer-events-auto">
-                    {/* Progress Slider */}
-                    <div className="flex items-center gap-4 mb-4 group/slider">
-                        <span className="text-xs font-medium text-white/70 w-12">{formatTime(currentTime)}</span>
-                        <div className="relative flex-1 flex items-center h-2">
-                            <input
-                                type="range"
-                                min="0"
-                                max={duration || 100}
-                                value={currentTime}
-                                onChange={handleSeek}
-                                className="absolute inset-0 w-full h-1 bg-white/20 rounded-full appearance-none cursor-pointer outline-none active:scale-y-125 transition-transform"
-                                style={{
-                                    background: `linear-gradient(to right, #E50914 ${(currentTime / (duration || 100)) * 100}%, rgba(255,255,255,0.2) 0%)`
-                                }}
-                            />
-                        </div>
-                        <span className="text-xs font-medium text-white/70 w-12">{formatTime(duration)}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-6">
-                            <button onClick={togglePlay} className="text-white hover:scale-110 transition-transform">
-                                {isPlaying ? <Pause size={28} fill="white" /> : <Play size={28} fill="white" />}
-                            </button>
-
-                            <div className="flex items-center gap-2 group/vol">
-                                <button onClick={() => setIsMuted(!isMuted)} className="text-white">
-                                    {isMuted || volume === 0 ? <VolumeX size={24} /> : <Volume2 size={24} />}
-                                </button>
+                    {/* Bottom Bar */}
+                    <div className="bg-gradient-to-t from-black/90 via-black/40 to-transparent p-6 pointer-events-auto">
+                        {/* Progress Slider */}
+                        <div className="flex items-center gap-4 mb-4 group/slider">
+                            <span className="text-xs font-medium text-white/70 w-12">{formatTime(currentTime)}</span>
+                            <div className="relative flex-1 flex items-center h-2">
                                 <input
                                     type="range"
                                     min="0"
-                                    max="1"
-                                    step="0.1"
-                                    value={isMuted ? 0 : volume}
-                                    onChange={handleVolume}
-                                    className="w-0 group-hover/vol:w-20 transition-all duration-300 h-1 accent-white"
+                                    max={duration || 100}
+                                    value={currentTime}
+                                    onChange={handleSeek}
+                                    className="absolute inset-0 w-full h-1 bg-white/20 rounded-full appearance-none cursor-pointer outline-none active:scale-y-125 transition-transform"
+                                    style={{
+                                        background: `linear-gradient(to right, #E50914 ${(currentTime / (duration || 100)) * 100}%, rgba(255,255,255,0.2) 0%)`
+                                    }}
                                 />
                             </div>
+                            <span className="text-xs font-medium text-white/70 w-12">{formatTime(duration)}</span>
                         </div>
 
-                        <div className="flex items-center gap-6">
-                            <div className="relative group/speed">
-                                <button className="flex items-center gap-1 text-white text-sm font-bold bg-white/10 px-3 py-1 rounded hover:bg-white/20 transition-colors">
-                                    {playbackSpeed}x
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-6">
+                                <button onClick={togglePlay} className="text-white hover:scale-110 transition-transform">
+                                    {isPlaying ? <Pause size={28} fill="white" /> : <Play size={28} fill="white" />}
                                 </button>
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 hidden group-hover/speed:flex flex-col bg-[#181818] rounded-md shadow-xl border border-white/10 overflow-hidden">
-                                    {[0.5, 0.75, 1, 1.25, 1.5, 2].map((s) => (
-                                        <button
-                                            key={s}
-                                            onClick={() => changeSpeed(s)}
-                                            className={`px-6 py-2 text-sm hover:bg-white/10 transition-colors ${playbackSpeed === s ? 'text-red-500 font-bold' : 'text-white'}`}
-                                        >
-                                            {s}x
-                                        </button>
-                                    ))}
+
+                                <div className="flex items-center gap-2 group/vol">
+                                    <button onClick={() => setIsMuted(!isMuted)} className="text-white">
+                                        {isMuted || volume === 0 ? <VolumeX size={24} /> : <Volume2 size={24} />}
+                                    </button>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="1"
+                                        step="0.1"
+                                        value={isMuted ? 0 : volume}
+                                        onChange={handleVolume}
+                                        className="w-0 group-hover/vol:w-20 transition-all duration-300 h-1 accent-white"
+                                    />
                                 </div>
                             </div>
 
-                            <button className="text-white hover:scale-110 transition-transform">
-                                <Maximize size={24} />
-                            </button>
+                            <div className="flex items-center gap-6">
+                                <div className="relative group/speed">
+                                    <button className="flex items-center gap-1 text-white text-sm font-bold bg-white/10 px-3 py-1 rounded hover:bg-white/20 transition-colors">
+                                        {playbackSpeed}x
+                                    </button>
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 hidden group-hover/speed:flex flex-col bg-[#181818] rounded-md shadow-xl border border-white/10 overflow-hidden">
+                                        {[0.5, 0.75, 1, 1.25, 1.5, 2].map((s) => (
+                                            <button
+                                                key={s}
+                                                onClick={() => changeSpeed(s)}
+                                                className={`px-6 py-2 text-sm hover:bg-white/10 transition-colors ${playbackSpeed === s ? 'text-red-500 font-bold' : 'text-white'}`}
+                                            >
+                                                {s}x
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <button className="text-white hover:scale-110 transition-transform">
+                                    <Maximize size={24} />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Custom CSS for range inputs */}
             <style jsx>{`

@@ -5,6 +5,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { ArrowLeft, CheckCircle2, Check, Play, ChevronRight, Clock } from 'lucide-react';
+import { bbcodeToHtml } from '@/utils/bbcode';
 
 interface Lesson {
     id: string;
@@ -92,6 +93,7 @@ export default function LessonPage() {
                 lessons (*)
             `)
             .eq('id', lessonData.module_id)
+            .order('order_index', { foreignTable: 'lessons' })
             .single();
 
         if (moduleError || !moduleData) {
@@ -179,30 +181,23 @@ export default function LessonPage() {
             <div className="w-full bg-black">
                 <div className="max-w-[1600px] mx-auto px-6 lg:px-12 pt-16 pb-6">
                     {/* Lesson Info - Refined Header */}
-                    <div className="mb-6">
+                    <div className={lesson.video_url?.trim() ? "mb-6" : "mb-12 pt-12"}>
                         <p className="text-xs text-[#6C5DD3] mb-1 uppercase tracking-wider font-semibold opacity-70">{module?.title}</p>
-                        <h1 className="text-xl lg:text-2xl font-bold text-white tracking-tight">
+                        <h1 className={`${lesson.video_url?.trim() ? "text-xl lg:text-2xl" : "text-3xl lg:text-5xl"} font-bold text-white tracking-tight`}>
                             {lesson.title}
                         </h1>
                     </div>
 
-                    <div className="aspect-video bg-black shadow-2xl rounded-xl overflow-hidden border border-white/5">
-                        {lesson.video_url ? (
+                    {lesson.video_url?.trim() && (
+                        <div className="aspect-video bg-black shadow-2xl rounded-xl overflow-hidden border border-white/5">
                             <iframe
                                 src={getYouTubeEmbedUrl(lesson.video_url)}
                                 className="w-full h-full"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                 allowFullScreen
                             />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                                <div className="text-center">
-                                    <Play size={64} className="mx-auto mb-4 text-white/30" />
-                                    <p className="text-white/50">Vídeo não disponível</p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -238,9 +233,10 @@ export default function LessonPage() {
                 {/* Lesson Description - Now below buttons */}
                 {lesson.description && (
                     <div className="mb-10 max-w-4xl">
-                        <p className="text-gray-300 text-lg leading-relaxed">
-                            {lesson.description}
-                        </p>
+                        <div
+                            className="text-gray-300 leading-relaxed prose prose-invert max-w-none"
+                            dangerouslySetInnerHTML={{ __html: bbcodeToHtml(lesson.description) }}
+                        />
                     </div>
                 )}
 
@@ -252,9 +248,10 @@ export default function LessonPage() {
                             <div className="w-1.5 h-6 bg-[#6C5DD3] rounded-full"></div>
                             Sobre esta aula
                         </h3>
-                        <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">
-                            {lesson.content}
-                        </p>
+                        <div
+                            className="text-gray-300 leading-relaxed prose prose-invert max-w-none"
+                            dangerouslySetInnerHTML={{ __html: bbcodeToHtml(lesson.content) }}
+                        />
                     </div>
                 )}
 
@@ -307,12 +304,14 @@ export default function LessonPage() {
                                             <h4 className={`font-bold text-lg truncate ${isCurrent ? 'text-white' : 'text-white/70 group-hover:text-white'}`}>
                                                 {l.title}
                                             </h4>
-                                            {l.duration_minutes && (
-                                                <span className="flex-shrink-0 text-white/40 text-xs font-medium flex items-center gap-1.5">
-                                                    <Clock size={12} />
-                                                    {l.duration_minutes}min
-                                                </span>
-                                            )}
+                                            <span className="flex-shrink-0 text-white/40 text-xs font-medium flex items-center gap-1.5">
+                                                {l.duration_minutes > 0 && (
+                                                    <>
+                                                        <Clock size={12} />
+                                                        {l.duration_minutes}min
+                                                    </>
+                                                )}
+                                            </span>
                                         </div>
                                         {l.description && (
                                             <p className="text-white/40 text-sm line-clamp-2 leading-relaxed">

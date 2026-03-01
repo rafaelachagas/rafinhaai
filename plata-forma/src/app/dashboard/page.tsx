@@ -66,7 +66,9 @@ export default function Dashboard() {
                 )
             `)
             .eq('is_active', true)
-            .order('order_index');
+            .order('order_index')
+            .order('order_index', { foreignTable: 'modules' })
+            .order('order_index', { foreignTable: 'modules.lessons' });
 
         // Fetch user progress
         const { data: progressData } = await supabase

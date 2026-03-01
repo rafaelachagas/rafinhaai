@@ -124,7 +124,8 @@ export default function CoursesPage() {
             `)
             .eq('is_active', true)
             .order('order_index')
-            .order('order_index', { foreignTable: 'modules' });
+            .order('order_index', { foreignTable: 'modules' })
+            .order('order_index', { foreignTable: 'modules.lessons' });
 
         if (coursesError) {
             console.error('Error fetching courses:', coursesError);
@@ -144,7 +145,8 @@ export default function CoursesPage() {
                     lessons (*)
                 )
             `)
-            .eq('user_id', profile.id);
+            .eq('user_id', profile.id)
+            .order('order_index', { foreignTable: 'modules.lessons' });
 
         if (listError) {
             console.error('Error fetching My List:', listError);
@@ -1009,59 +1011,66 @@ export default function CoursesPage() {
                             </div>
 
                             <div className="space-y-0.5">
-                                {selectedModule.lessons?.filter((l: any) => l.is_published).map((lesson: any, index: number) => {
-                                    const isCompleted = progress.some(p => p.lesson_id === lesson.id && p.completed);
-                                    return (
-                                        <div
-                                            key={lesson.id}
-                                            onClick={() => router.push(`/dashboard/watch/${lesson.id}`)}
-                                            className="flex items-center gap-8 p-6 rounded-lg hover:bg-[#333333] transition-colors cursor-pointer group border-b border-white/5 last:border-0 min-h-[140px]"
-                                        >
-                                            {/* Index */}
-                                            <div className="w-8 text-2xl font-bold text-[#808080] flex-shrink-0 text-center">
-                                                {index + 1}
-                                            </div>
-
-                                            {/* Thumbnail Area */}
-                                            <div className="relative w-48 aspect-video rounded-md overflow-hidden bg-[#2a2a2a] flex-shrink-0 shadow-lg border border-white/5">
-                                                {selectedModule.cover_image_url ? (
-                                                    <img
-                                                        src={selectedModule.cover_image_url}
-                                                        className="w-full h-full object-cover opacity-90"
-                                                        alt={lesson.title}
-                                                    />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center">
-                                                        <Play size={24} className="text-white/20" />
-                                                    </div>
-                                                )}
-                                                <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <div className="w-12 h-12 border-2 border-white rounded-full flex items-center justify-center">
-                                                        <Play size={24} className="text-white ml-1" fill="white" />
-                                                    </div>
+                                {selectedModule.lessons?.filter((l: any) => l.is_published)
+                                    .sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
+                                    .map((lesson: any, index: number) => {
+                                        const isCompleted = progress.some(p => p.lesson_id === lesson.id && p.completed);
+                                        return (
+                                            <div
+                                                key={lesson.id}
+                                                onClick={() => router.push(`/dashboard/watch/${lesson.id}`)}
+                                                className="flex items-center gap-8 p-6 rounded-lg hover:bg-[#333333] transition-colors cursor-pointer group border-b border-white/5 last:border-0 min-h-[140px]"
+                                            >
+                                                {/* Index */}
+                                                <div className="w-8 text-2xl font-bold text-[#808080] flex-shrink-0 text-center">
+                                                    {index + 1}
                                                 </div>
-                                                {isCompleted && (
-                                                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-red-600 z-20" />
-                                                )}
-                                            </div>
 
-                                            {/* Lesson Content - Netflix Style spacing */}
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center justify-between mb-2 gap-4">
-                                                    <h4 className="text-lg font-bold text-white truncate">
-                                                        {lesson.title}
-                                                    </h4>
-                                                    <div className="text-base text-white/80 flex-shrink-0 font-medium whitespace-nowrap">
-                                                        {lesson.duration_minutes || 15}min
+                                                {/* Thumbnail Area */}
+                                                <div className="relative w-48 aspect-video rounded-md overflow-hidden bg-[#2a2a2a] flex-shrink-0 shadow-lg border border-white/5">
+                                                    {selectedModule.cover_image_url ? (
+                                                        <img
+                                                            src={selectedModule.cover_image_url}
+                                                            className="w-full h-full object-cover opacity-90"
+                                                            alt={lesson.title}
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center">
+                                                            <Play size={24} className="text-white/20" />
+                                                        </div>
+                                                    )}
+                                                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <div className="w-12 h-12 border-2 border-white rounded-full flex items-center justify-center">
+                                                            <Play size={24} className="text-white ml-1" fill="white" />
+                                                        </div>
                                                     </div>
+                                                    {isCompleted && (
+                                                        <div className="absolute top-2 right-2 bg-green-500 rounded-full p-1 shadow-lg z-20">
+                                                            <Check size={14} className="text-white" strokeWidth={4} />
+                                                        </div>
+                                                    )}
+                                                    {isCompleted && (
+                                                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-red-600 z-20" />
+                                                    )}
                                                 </div>
-                                                <p className="text-[15px] text-[#a3a3a3] line-clamp-3 leading-relaxed font-normal">
-                                                    {lesson.description || 'Neste episódio, exploramos os conceitos fundamentais deste tópico com exemplos práticos e demonstrações em tempo real.'}
-                                                </p>
+
+                                                {/* Lesson Content - Netflix Style spacing */}
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center justify-between mb-2 gap-4">
+                                                        <h4 className="text-lg font-bold text-white truncate">
+                                                            {lesson.title}
+                                                        </h4>
+                                                        <div className="text-base text-white/80 flex-shrink-0 font-medium whitespace-nowrap">
+                                                            {lesson.duration_minutes > 0 ? `${lesson.duration_minutes}min` : ''}
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-[15px] text-[#a3a3a3] line-clamp-3 leading-relaxed font-normal">
+                                                        {lesson.description || 'Neste episódio, exploramos os conceitos fundamentais deste tópico com exemplos práticos e demonstrações em tempo real.'}
+                                                    </p>
+                                                </div>
                                             </div>
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })}
                             </div>
                         </div>
                     </div>

@@ -117,7 +117,6 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
                                     <NavItem icon={<Mail size={24} />} label="Mensagens" href="/dashboard/messages" active={pathname === '/dashboard/messages'} isDark={forcedDark} onClick={() => setIsMobileOpen(false)} />
                                     <NavItem icon={<PlayCircle size={24} />} label="Aulas" href="/dashboard/courses" active={pathname.startsWith('/dashboard/courses') || pathname.startsWith('/dashboard/watch')} isDark={forcedDark} onClick={() => setIsMobileOpen(false)} />
                                     <NavItem icon={<PenTool size={24} />} label="Ferramentas" href="/dashboard/tools" active={pathname.startsWith('/dashboard/tools')} isDark={forcedDark} onClick={() => setIsMobileOpen(false)} />
-                                    <NavItem icon={<CheckSquare size={24} />} label="Tarefas" href="#" active={false} isDark={forcedDark} onClick={() => setIsMobileOpen(false)} />
                                 </>
                             )}
                         </nav>
@@ -232,7 +231,6 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
                                             <NavItem icon={<Mail size={24} />} label="Mensagens" href="/dashboard/messages" active={pathname === '/dashboard/messages'} isDark={forcedDark} isCollapsed={isCollapsed} />
                                             <NavItem icon={<PlayCircle size={24} />} label="Aulas" href="/dashboard/courses" active={pathname.startsWith('/dashboard/courses') || pathname.startsWith('/dashboard/watch')} isDark={forcedDark} isCollapsed={isCollapsed} />
                                             <NavItem icon={<PenTool size={24} />} label="Ferramentas" href="/dashboard/tools" active={pathname.startsWith('/dashboard/tools')} isDark={forcedDark} isCollapsed={isCollapsed} />
-                                            <NavItem icon={<CheckSquare size={24} />} label="Tarefas" href="#" active={false} isDark={forcedDark} isCollapsed={isCollapsed} />
                                         </>
                                     )}
                                 </nav>

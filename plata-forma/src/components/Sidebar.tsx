@@ -108,6 +108,7 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
                                 <>
                                     <NavItem icon={<LayoutDashboard size={24} />} label="Resumo Geral" href="/dashboard/admin" active={pathname === '/dashboard/admin'} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} onClick={() => setIsMobileOpen(false)} />
                                     <NavItem icon={<Users size={24} />} label="Usuários" href="/dashboard/admin/users" active={pathname === '/dashboard/admin/users'} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} onClick={() => setIsMobileOpen(false)} />
+                                    <NavItem icon={<BarChart3 size={24} />} label="CRM" href="/dashboard/admin/crm" active={pathname.startsWith('/dashboard/admin/crm')} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} onClick={() => setIsMobileOpen(false)} />
                                     <NavItem icon={<BookOpen size={24} />} label="Cursos" href="/dashboard/admin/courses" active={pathname === '/dashboard/admin/courses'} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} onClick={() => setIsMobileOpen(false)} />
                                     <NavItem icon={<Mail size={24} />} label="Avisos/Mensagens" href="/dashboard/admin/messages" active={pathname === '/dashboard/admin/messages'} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} onClick={() => setIsMobileOpen(false)} />
                                 </>
@@ -222,6 +223,7 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
                                         <>
                                             <NavItem icon={<LayoutDashboard size={24} />} label="Resumo Geral" href="/dashboard/admin" active={pathname === '/dashboard/admin'} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} isCollapsed={isCollapsed} />
                                             <NavItem icon={<Users size={24} />} label="Usuários" href="/dashboard/admin/users" active={pathname === '/dashboard/admin/users'} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} isCollapsed={isCollapsed} />
+                                            <NavItem icon={<BarChart3 size={24} />} label="CRM" href="/dashboard/admin/crm" active={pathname.startsWith('/dashboard/admin/crm')} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} isCollapsed={isCollapsed} />
                                             <NavItem icon={<BookOpen size={24} />} label="Cursos" href="/dashboard/admin/courses" active={pathname === '/dashboard/admin/courses'} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} isCollapsed={isCollapsed} />
                                             <NavItem icon={<Mail size={24} />} label="Avisos/Mensagens" href="/dashboard/admin/messages" active={pathname === '/dashboard/admin/messages'} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} isCollapsed={isCollapsed} />
                                         </>

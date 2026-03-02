@@ -20,7 +20,8 @@ import {
     Lock,
     Eye,
     EyeOff,
-    Trash2
+    Trash2,
+    Download
 } from 'lucide-react';
 import { createUser, deleteUser, updateUserRole, updateUserProfile } from '@/app/actions/admin';
 import { Header } from '@/components/Header';
@@ -153,6 +154,36 @@ export default function UserManagementPage() {
         user.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const handleExportCSV = () => {
+        const headers = ['Nome', 'Email', 'CPF', 'Cargo', 'Data de Cadastro'];
+        const csvRows = [
+            headers.join(','),
+            ...filteredUsers.map(user => {
+                return [
+                    `"${user.full_name || ''}"`,
+                    `"${user.email || ''}"`,
+                    `"${user.cpf || ''}"`,
+                    `"${user.role}"`,
+                    `"${new Date(user.created_at).toLocaleDateString()}"`
+                ].join(',');
+            })
+        ];
+
+        const csvContent = csvRows.join('\n');
+        // Adicionando BOM para corrigir acentuação no Excel
+        const bom = '\uFEFF';
+        const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `usuarios_rafinha_ai_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     if (themeLoading || (loading && users.length === 0)) {
         return (
             <div className={`min-h-screen flex items-center justify-center ${isDark ? 'bg-[#0F0F0F]' : 'bg-gray-50'}`}>
@@ -222,6 +253,14 @@ export default function UserManagementPage() {
                             />
                         </div>
                         <div className="flex gap-2">
+                            <button
+                                onClick={handleExportCSV}
+                                className={`p-3 rounded-xl border flex items-center gap-2 transition-colors ${isDark ? 'bg-[#0A0113] border-white/10 hover:bg-white/5 text-gray-400' : 'bg-gray-50 border-gray-100 hover:bg-gray-100 text-gray-500'}`}
+                                title="Exportar para CSV"
+                            >
+                                <Download size={18} />
+                                <span className="hidden sm:inline">Exportar</span>
+                            </button>
                             <button className={`p-3 rounded-xl border flex items-center gap-2 transition-colors ${isDark ? 'bg-[#0A0113] border-white/10 text-gray-400' : 'bg-gray-50 border-gray-100 text-gray-500'}`}>
                                 <Filter size={18} />
                                 Filtros

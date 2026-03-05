@@ -62,7 +62,7 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
                         {isAdminRoute ? <Shield className="text-white w-5 h-5" /> : <Sparkles className="text-white w-5 h-5" />}
                     </div>
                     <span className={`font-bold text-lg tracking-tight ${forcedDark ? 'text-white' : 'text-[#1B1D21]'}`}>
-                        {isAdminRoute ? 'Admin' : 'Rafinha.AI'}
+                        {isAdminRoute ? 'Admin' : 'Profissão do Futuro'}
                     </span>
                 </div>
                 <button
@@ -94,7 +94,7 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
                         {isAdminRoute ? <Shield className="text-white w-7 h-7" /> : <Sparkles className="text-white w-7 h-7" />}
                     </div>
                     <span className={`font-bold text-xl tracking-tight ${forcedDark ? 'text-white' : 'text-[#1B1D21]'}`}>
-                        {isAdminRoute ? 'Painel Admin' : 'Rafinha.AI'}
+                        {isAdminRoute ? 'Painel Admin' : 'Profissão do Futuro'}
                     </span>
                 </div>
 
@@ -206,7 +206,7 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
                             </div>
                             {!isCollapsed && (
                                 <span className={`font-bold text-xl tracking-tight ${forcedDark ? 'text-white' : 'text-[#1B1D21]'}`}>
-                                    {isAdminRoute ? 'Painel Admin' : 'Rafinha.AI'}
+                                    {isAdminRoute ? 'Painel Admin' : 'Profissão do Futuro'}
                                 </span>
                             )}
                         </div>

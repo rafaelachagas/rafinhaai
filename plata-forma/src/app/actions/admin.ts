@@ -62,7 +62,7 @@ export async function updateUserRole(targetUserId: string, targetUserEmail: stri
     }
 }
 
-export async function createUser(email: string, full_name: string, password: string, role: UserRole, cpf?: string) {
+export async function createUser(email: string, full_name: string, password: string, role: UserRole, cpf?: string, phone?: string) {
     try {
         // Bloquear criação de admin via painel
         if (role === 'admin') {
@@ -85,7 +85,7 @@ export async function createUser(email: string, full_name: string, password: str
             // 2. Atualizar o cargo e dados no perfil
             const { error: profileError } = await supabaseAdmin
                 .from('profiles')
-                .update({ full_name, role, cpf })
+                .update({ full_name, role, cpf, phone })
                 .eq('id', data.user.id);
 
             if (profileError) {
@@ -99,7 +99,7 @@ export async function createUser(email: string, full_name: string, password: str
     }
 }
 
-export async function updateUserProfile(targetUserId: string, data: { full_name?: string, cpf?: string }, requesterId: string) {
+export async function updateUserProfile(targetUserId: string, data: { full_name?: string, cpf?: string, phone?: string }, requesterId: string) {
     try {
         // 1. Verificar se o solicitante tem permissão (admin ou moderador)
         const { data: requesterProfile } = await supabaseAdmin
@@ -122,12 +122,12 @@ export async function updateUserProfile(targetUserId: string, data: { full_name?
             return { success: false, error: 'Erro ao atualizar perfil: ' + updateError.message };
         }
 
-        // 3. Opcionalmente atualizar metadados do Auth (para manter sincronizado)
-        if (data.full_name || data.cpf) {
+        if (data.full_name || data.cpf || data.phone) {
             await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
                 user_metadata: {
                     ...(data.full_name ? { full_name: data.full_name } : {}),
-                    ...(data.cpf ? { cpf: data.cpf } : {})
+                    ...(data.cpf ? { cpf: data.cpf } : {}),
+                    ...(data.phone ? { phone: data.phone } : {})
                 }
             });
         }

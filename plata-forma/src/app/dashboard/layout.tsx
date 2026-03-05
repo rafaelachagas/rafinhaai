@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/Sidebar';
 import { RealtimeNotifier } from '@/components/RealtimeNotifier';
 import { useTheme } from '@/context/ThemeContext';
 import { usePathname } from 'next/navigation';
+import { TermsPopup } from '@/components/TermsPopup';
 
 const IMMERSIVE_ROUTES = ['/dashboard/courses', '/dashboard/watch'];
 
@@ -40,6 +41,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {children}
             </div>
             <RealtimeNotifier />
+            <TermsPopup />
         </div>
     );
 }

@@ -72,7 +72,7 @@ export default function ScriptsPage() {
 
                     <div className="px-6 py-3 rounded-2xl bg-[#120222]/40 backdrop-blur-xl border border-white/5 flex items-center gap-4">
                         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-xs font-bold text-gray-300 uppercase tracking-widest">Model: Rafinha.AI v2.0</span>
+                        <span className="text-xs font-bold text-gray-300 uppercase tracking-widest">Model: Formação AI v2.0</span>
                     </div>
                 </div>
 

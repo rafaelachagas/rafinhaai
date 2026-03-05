@@ -21,7 +21,8 @@ import {
     Eye,
     EyeOff,
     Trash2,
-    Download
+    Download,
+    ChevronDown
 } from 'lucide-react';
 import { createUser, deleteUser, updateUserRole, updateUserProfile } from '@/app/actions/admin';
 import { Header } from '@/components/Header';
@@ -34,6 +35,7 @@ interface Profile {
     created_at: string;
     full_name?: string;
     cpf?: string;
+    phone?: string;
 }
 
 export default function UserManagementPage() {
@@ -49,6 +51,7 @@ export default function UserManagementPage() {
     const [newUserEmail, setNewUserEmail] = useState('');
     const [newUserPassword, setNewUserPassword] = useState('');
     const [newUserCpf, setNewUserCpf] = useState('');
+    const [newUserPhone, setNewUserPhone] = useState('');
     const [newUserRole, setNewUserRole] = useState<UserRole>('user');
     const [showPassword, setShowPassword] = useState(false);
     const [formLoading, setFormLoading] = useState(false);
@@ -59,6 +62,7 @@ export default function UserManagementPage() {
     const [editingUser, setEditingUser] = useState<Profile | null>(null);
     const [editName, setEditName] = useState('');
     const [editCpf, setEditCpf] = useState('');
+    const [editPhone, setEditPhone] = useState('');
 
     useEffect(() => {
         if (!themeLoading && (!profile || (profile.role !== 'admin' && profile.role !== 'moderator'))) {
@@ -86,7 +90,7 @@ export default function UserManagementPage() {
         setFormLoading(true);
         setFormError(null);
 
-        const result = await createUser(newUserEmail, newUserName, newUserPassword, newUserRole, newUserCpf);
+        const result = await createUser(newUserEmail, newUserName, newUserPassword, newUserRole, newUserCpf, newUserPhone);
 
         if (result.success) {
             setIsAddModalOpen(false);
@@ -94,6 +98,7 @@ export default function UserManagementPage() {
             setNewUserEmail('');
             setNewUserPassword('');
             setNewUserCpf('');
+            setNewUserPhone('');
             setNewUserRole('user');
             fetchUsers();
         } else {
@@ -106,6 +111,7 @@ export default function UserManagementPage() {
         setEditingUser(user);
         setEditName(user.full_name || '');
         setEditCpf(user.cpf || '');
+        setEditPhone(user.phone || '');
         setIsEditModalOpen(true);
     };
 
@@ -114,7 +120,7 @@ export default function UserManagementPage() {
         if (!editingUser || !profile) return;
         setFormLoading(true);
 
-        const result = await updateUserProfile(editingUser.id, { full_name: editName, cpf: editCpf }, profile.id);
+        const result = await updateUserProfile(editingUser.id, { full_name: editName, cpf: editCpf, phone: editPhone }, profile.id);
 
         if (result.success) {
             setIsEditModalOpen(false);
@@ -291,12 +297,20 @@ export default function UserManagementPage() {
                                                     <p className={`font-bold ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>{user.full_name || 'Usuário sem nome'}</p>
                                                     <div className="flex items-center gap-2">
                                                         <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{user.email}</p>
-                                                        {user.cpf && (
-                                                            <>
-                                                                <span className="w-1 h-1 rounded-full bg-gray-600" />
-                                                                <p className={`text-[10px] font-medium ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>CPF: {user.cpf}</p>
-                                                            </>
-                                                        )}
+                                                        <div className="flex flex-col gap-1 items-start mt-1">
+                                                            {user.cpf && (
+                                                                <div className="flex items-center gap-1">
+                                                                    <span className="w-1 h-1 rounded-full bg-gray-600" />
+                                                                    <p className={`text-[10px] font-medium ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>CPF: {user.cpf}</p>
+                                                                </div>
+                                                            )}
+                                                            {user.phone && (
+                                                                <div className="flex items-center gap-1">
+                                                                    <span className="w-1 h-1 rounded-full bg-green-500" />
+                                                                    <p className={`text-[10px] font-medium ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Telefone: {user.phone}</p>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -387,6 +401,13 @@ export default function UserManagementPage() {
                                         className={`w-full px-4 py-3 rounded-xl border outline-none transition-all ${isDark ? 'bg-white/5 border-white/10 focus:border-[#FF754C]/50' : 'bg-gray-50 border-gray-100 focus:border-[#FF754C]/50'}`}
                                         placeholder="Ex: 000.000.000-00"
                                     />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className={`text-xs font-semibold uppercase tracking-wider ml-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                        Telefone (Com DDI e DDD)
+                                    </label>
+                                    <PhoneInput value={newUserPhone} onChange={setNewUserPhone} isDark={isDark} />
                                 </div>
 
                                 <div className="space-y-2">
@@ -503,6 +524,13 @@ export default function UserManagementPage() {
 
                                 <div className="space-y-2">
                                     <label className={`text-xs font-semibold uppercase tracking-wider ml-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                        Telefone (Com DDI e DDD)
+                                    </label>
+                                    <PhoneInput value={editPhone} onChange={setEditPhone} isDark={isDark} />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className={`text-xs font-semibold uppercase tracking-wider ml-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                                         Nome Completo
                                     </label>
                                     <input
@@ -540,6 +568,93 @@ export default function UserManagementPage() {
                     </div>
                 )}
             </div>
+        </div>
+    );
+}
+
+function PhoneInput({ value, onChange, isDark }: { value: string, onChange: (val: string) => void, isDark: boolean }) {
+    const DDIs = [
+        { code: '+55', iso: 'br', name: 'Brasil' },
+        { code: '+351', iso: 'pt', name: 'Portugal' },
+        { code: '+1', iso: 'us', name: 'Estados Unidos' },
+        { code: '+54', iso: 'ar', name: 'Argentina' },
+        { code: '+57', iso: 'co', name: 'Colômbia' },
+        { code: '+56', iso: 'cl', name: 'Chile' },
+        { code: '+52', iso: 'mx', name: 'México' },
+    ];
+
+    const [ddi, setDdi] = useState('+55');
+    const [number, setNumber] = useState('');
+    const [isOpen, setIsOpen] = useState(false);
+
+    useEffect(() => {
+        if (value) {
+            const match = DDIs.find(d => value.startsWith(d.code));
+            if (match) {
+                setDdi(match.code);
+                setNumber(value.slice(match.code.length).trim());
+            } else {
+                setNumber(value);
+            }
+        } else {
+            setNumber('');
+        }
+    }, [value]);
+
+    const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newNumber = e.target.value.replace(/[^\d\s-]/g, '');
+        setNumber(newNumber);
+        onChange(`${ddi} ${newNumber}`.trim());
+    };
+
+    const handleDdiChange = (newDdi: string) => {
+        setDdi(newDdi);
+        onChange(`${newDdi} ${number}`.trim());
+        setIsOpen(false);
+    };
+
+    const currentDdi = DDIs.find(d => d.code === ddi) || DDIs[0];
+
+    return (
+        <div className={`flex items-center w-full px-2 py-2 rounded-xl border transition-all relative ${isDark ? 'bg-white/5 border-white/10 focus-within:border-[#FF754C]/50' : 'bg-gray-50 border-gray-100 focus-within:border-[#FF754C]/50'}`}>
+            <div className="relative flex items-center pr-2 border-r border-gray-200 dark:border-white/10">
+                <button
+                    type="button"
+                    onClick={() => setIsOpen(!isOpen)}
+                    className={`flex items-center gap-2 pl-2 pr-2 py-1 outline-none ${isDark ? 'text-white' : 'text-gray-900'} hover:opacity-80 transition-opacity`}
+                >
+                    <img src={`https://flagcdn.com/w20/${currentDdi.iso}.png`} alt={currentDdi.iso} className="w-5 h-auto rounded-[2px]" />
+                    <span className="text-sm font-medium">{currentDdi.code}</span>
+                    <ChevronDown size={14} className={isDark ? 'text-gray-400' : 'text-gray-500'} />
+                </button>
+
+                {isOpen && (
+                    <>
+                        <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+                        <div className={`absolute left-0 top-full mt-2 w-56 rounded-xl border shadow-xl z-50 max-h-64 overflow-y-auto overflow-x-hidden p-2 transform origin-top animate-in zoom-in duration-200 ${isDark ? 'bg-[#120222] border-white/10' : 'bg-white border-gray-100'}`}>
+                            {DDIs.map(d => (
+                                <button
+                                    key={d.iso}
+                                    type="button"
+                                    onClick={() => handleDdiChange(d.code)}
+                                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${ddi === d.code ? (isDark ? 'bg-[#FF754C]/10 text-[#FF754C]' : 'bg-[#FF754C]/10 text-[#FF754C]') : (isDark ? 'hover:bg-white/5 text-gray-300' : 'hover:bg-gray-50 text-gray-700')}`}
+                                >
+                                    <img src={`https://flagcdn.com/w20/${d.iso}.png`} alt={d.iso} className="w-5 h-auto rounded-[2px] shadow-sm" />
+                                    <span className="font-bold whitespace-nowrap">{d.code}</span>
+                                    <span className={`text-xs truncate ${ddi === d.code ? (isDark ? 'text-[#FF754C]/70' : 'text-[#FF754C]/70') : (isDark ? 'text-gray-500' : 'text-gray-400')}`}>{d.name}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </>
+                )}
+            </div>
+            <input
+                type="tel"
+                value={number}
+                onChange={handleNumberChange}
+                className={`w-full bg-transparent outline-none px-3 py-1 text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}
+                placeholder="11 99999-9999"
+            />
         </div>
     );
 }

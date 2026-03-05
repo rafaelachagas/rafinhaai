@@ -237,6 +237,9 @@ export default function DynamicToolPage() {
     const [notificationsOpen, setNotificationsOpen] = useState(false);
 
     const [formData, setFormData] = useState<Record<string, string>>({});
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [fileInputKey, setFileInputKey] = useState(Date.now());
+    const [formError, setFormError] = useState<string | null>(null);
     const [generating, setGenerating] = useState(false);
     const [result, setResult] = useState('');
     const [copied, setCopied] = useState(false);
@@ -281,7 +284,7 @@ export default function DynamicToolPage() {
             .map(f => f.label);
 
         if (missingRequired.length > 0) {
-            alert(`Preencha os campos obrigatórios:\n• ${missingRequired.join('\n• ')}`);
+            setFormError(`Preencha os campos obrigatórios:\n• ${missingRequired.join('\n• ')}`);
             return;
         }
 
@@ -345,6 +348,32 @@ export default function DynamicToolPage() {
                     recentMessages={recentMessages}
                     searchPlaceholder="Procurar aula ou ferramenta..."
                 />
+
+                {formError && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setFormError(null)} />
+                        <div className={`relative max-w-sm w-full p-6 rounded-[2rem] border animate-in spin-in zoom-in duration-300 ${isDark ? 'bg-[#120222] border-white/10 shadow-2xl' : 'bg-white border-gray-100 shadow-xl'}`}>
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
+                                    <X size={20} className="text-red-500" />
+                                </div>
+                                <button onClick={() => setFormError(null)} className={`p-2 rounded-full ${isDark ? 'hover:bg-white/5 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}>
+                                    <X size={16} />
+                                </button>
+                            </div>
+                            <h3 className={`text-xl font-bold mb-2 tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>Atenção</h3>
+                            <p className={`whitespace-pre-line text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                                {formError}
+                            </p>
+                            <button
+                                onClick={() => setFormError(null)}
+                                className="mt-6 w-full py-3.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-sm transition-colors"
+                            >
+                                Entendi
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {/* Back Button */}
                 <button

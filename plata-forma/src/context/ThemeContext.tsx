@@ -12,6 +12,12 @@ interface UserProfile {
     role: UserRole;
     full_name?: string | null;
     avatar_url?: string | null;
+    phone?: string | null;
+    terms_accepted_at?: string | null;
+    last_active_at?: string | null;
+    login_count?: number;
+    ai_tools_used?: number;
+    total_seconds_online?: number;
 }
 
 interface ThemeContextType {
@@ -52,6 +58,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
                     if (profileData) {
                         setProfile(profileData as UserProfile);
+
+                        // Registrar acessos intermitentes (limite de 1 hora para não floodar o banco)
+                        const lastActive = profileData.last_active_at ? new Date(profileData.last_active_at).getTime() : 0;
+                        const now = Date.now();
+                        const timeSinceLastActive = now - lastActive;
+
+                        if (timeSinceLastActive > 1000 * 60 * 60) { // +1 hora
+                            const newLoginCount = (profileData.login_count || 0) + 1;
+                            // Salva no banco de forma silenciosa e "fire-and-forget"
+                            supabase.from('profiles').update({
+                                last_active_at: new Date().toISOString(),
+                                login_count: newLoginCount
+                            }).eq('id', profileData.id).then();
+                        }
                     } else if (profileError) {
                         console.error('Error fetching profile:', profileError);
                     }
@@ -79,6 +99,23 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
         return () => subscription.unsubscribe();
     }, []);
+
+    // Time tracking effect
+    useEffect(() => {
+        if (!profile) return;
+
+        let intervalId = setInterval(() => {
+            if (document.visibilityState === 'visible' && !window.location.pathname.startsWith('/dashboard/admin')) {
+                supabase.rpc('increment_time_online', {
+                    p_user_id: profile.id,
+                    p_seconds: 10
+                }).then();
+                setProfile(prev => prev ? { ...prev, total_seconds_online: (prev.total_seconds_online || 0) + 10 } : null);
+            }
+        }, 10000); // 10 seconds
+
+        return () => clearInterval(intervalId);
+    }, [profile]);
 
     const toggleTheme = () => {
         const newTheme = theme === 'light' ? 'dark' : 'light';

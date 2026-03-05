@@ -261,7 +261,7 @@ export default function ToolsPage() {
                             15 ferramentas de IA pra você dominar o jogo
                         </h1>
                         <p className="text-white/90 text-lg max-w-lg font-medium">
-                            Do roteiro à abordagem, do portfólio ao gancho — tudo estruturado com a metodologia Rafinha.AI pra você criar, analisar e converter.
+                            Do roteiro à abordagem, do portfólio ao gancho — tudo estruturado com a metodologia da Formação pra você criar, analisar e converter.
                         </p>
                     </div>
                     <Sparkles className="absolute right-10 top-10 w-40 h-40 opacity-20 rotate-12 drop-shadow-2xl" />

@@ -357,7 +357,7 @@ export default function MessagesPage() {
                                     <div className="flex items-center gap-4 pt-1">
                                         <div className="flex items-center gap-2">
                                             <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-400">R</div>
-                                            <span className="text-xs font-bold text-gray-400">Rafinha.AI</span>
+                                            <span className="text-xs font-bold text-gray-400">IA da Formação</span>
                                         </div>
                                         <div className="w-1 h-1 rounded-full bg-gray-200"></div>
                                         <div className="flex items-center gap-1.5 text-gray-400 text-xs font-medium">

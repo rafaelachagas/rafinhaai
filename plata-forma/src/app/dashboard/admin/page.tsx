@@ -6,7 +6,10 @@ import {
     TrendingUp,
     Activity,
     Zap,
-    ThumbsUp
+    ThumbsUp,
+    PlayCircle,
+    DollarSign,
+    Target
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { useRouter } from 'next/navigation';
@@ -29,8 +32,10 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
         totalUsers: 0,
-        salesToday: '1.250',
-        totalLikes: 0
+        activeUsersToday: 0,
+        totalHoursWatched: 0,
+        salesToday: '12.450,00',
+        mrr: '145.200,00'
     });
     const [moduleLikesData, setModuleLikesData] = useState<any[]>([]);
     const [lessonLikesData, setLessonLikesData] = useState<any[]>([]);
@@ -43,11 +48,26 @@ export default function AdminDashboard() {
                     router.push('/dashboard');
                 } else {
                     try {
+                        // Buscar total de usuários e ativos nas ultimas 24h
+                        const now = new Date();
+                        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+
                         const { count: userCount } = await supabase
                             .from('profiles')
                             .select('*', { count: 'exact', head: true });
 
-                        // Fetch Module Likes
+                        const { count: activeCount } = await supabase
+                            .from('profiles')
+                            .select('*', { count: 'exact', head: true })
+                            .gte('last_active_at', yesterday);
+
+                        // Somar o total de segundos de todo mundo pra ter a minutagem total da plataforma
+                        const { data: totalTimeData } = await supabase
+                            .from('profiles')
+                            .select('total_seconds_online');
+
+                        const totalSeconds = totalTimeData?.reduce((acc, curr) => acc + (curr.total_seconds_online || 0), 0) || 0;
+                        const totalHours = Math.floor(totalSeconds / 3600);
                         const { data: mData } = await supabase
                             .from('modules')
                             .select(`
@@ -75,8 +95,10 @@ export default function AdminDashboard() {
 
                         setStats({
                             totalUsers: userCount || 0,
-                            salesToday: '1.250',
-                            totalLikes: formattedMData.reduce((acc, curr) => acc + curr.likes, 0) + formattedLData.reduce((acc, curr) => acc + curr.likes, 0)
+                            activeUsersToday: activeCount || 0,
+                            totalHoursWatched: totalHours,
+                            salesToday: '12.450,00', // Mocked para o visual
+                            mrr: '145.200,00' // Mocked para o visual
                         });
                         setModuleLikesData(formattedMData);
                         setLessonLikesData(formattedLData);
@@ -159,9 +181,11 @@ export default function AdminDashboard() {
             </section>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-                <AdminStatCard label="TOTAL DE ALUNOS" value={stats.totalUsers.toString()} trend="+5%" icon={<Users size={20} />} color="text-blue-500" bg={isDark ? "bg-blue-500/10" : "bg-blue-50"} isDark={isDark} />
-                <AdminStatCard label="TOTAL DE CURTIDAS" value={stats.totalLikes.toString()} trend="+12%" icon={<ThumbsUp size={20} />} color="text-orange-500" bg={isDark ? "bg-orange-500/10" : "bg-orange-50"} isDark={isDark} />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                <AdminStatCard label="TOTAL DE ALUNOS" value={stats.totalUsers.toString()} trend="+5%" icon={<Users size={24} />} color="text-blue-500" bg={isDark ? "bg-blue-500/10" : "bg-blue-50"} isDark={isDark} />
+                <AdminStatCard label="ALUNOS ATIVOS (24H)" value={stats.activeUsersToday.toString()} trend="+12%" icon={<Activity size={24} />} color="text-orange-500" bg={isDark ? "bg-orange-500/10" : "bg-orange-50"} isDark={isDark} />
+                <AdminStatCard label="TEMPO DE PLATAFORMA" value={`${stats.totalHoursWatched}h`} trend="+8%" icon={<PlayCircle size={24} />} color="text-purple-500" bg={isDark ? "bg-purple-500/10" : "bg-purple-50"} isDark={isDark} />
+                <AdminStatCard label="FATURAMENTO HOJE" value={`R$ ${stats.salesToday}`} trend="+15%" icon={<DollarSign size={24} />} color="text-green-500" bg={isDark ? "bg-green-500/10" : "bg-green-50"} isDark={isDark} />
             </div>
 
             {/* Analytics Section */}
@@ -169,7 +193,7 @@ export default function AdminDashboard() {
                 {/* Module Likes Chart */}
                 <div className={`${isDark ? 'bg-[#1B1D21] border-white/5' : 'bg-white border-gray-100'} p-8 rounded-[2.5rem] border shadow-sm`}>
                     <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                        <Activity className="text-blue-500" size={20} />
+                        <Target className="text-blue-500" size={20} />
                         Módulos Mais Curtidos
                     </h3>
                     <div className="h-[300px] w-full">
@@ -269,16 +293,16 @@ export default function AdminDashboard() {
 
 function AdminStatCard({ label, value, trend, icon, color, bg, isDark }: { label: string, value: string, trend: string, icon: any, color: string, bg: string, isDark: boolean }) {
     return (
-        <div className={`${isDark ? 'bg-[#1B1D21] border-white/5' : 'bg-white border-gray-100'} p-8 rounded-[2.5rem] border flex items-start gap-6 shadow-sm hover:shadow-xl transition-all group`}>
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white ${color} ${bg} font-bold transform group-hover:scale-110 transition-transform`}>
-                {icon}
-            </div>
-            <div className="flex-1">
-                <div className="flex items-center justify-between mb-2">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{label}</p>
-                    <span className={`text-[10px] font-bold ${isDark ? 'bg-emerald-500/10 text-emerald-500' : 'bg-emerald-50 text-emerald-600'} px-2 py-1 rounded-full`}>{trend}</span>
+        <div className={`${isDark ? 'bg-[#1B1D21] border-white/5' : 'bg-white border-gray-100'} p-6 rounded-[2rem] border flex flex-col justify-between h-40 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group`}>
+            <div className="flex items-center justify-between">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white ${color} ${bg} font-bold transform group-hover:scale-110 transition-transform`}>
+                    {icon}
                 </div>
-                <h4 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>{value}</h4>
+                <span className={`text-[10px] font-bold ${isDark ? 'bg-emerald-500/10 text-emerald-500' : 'bg-emerald-50 text-emerald-600'} px-2 py-1 rounded-full`}>{trend}</span>
+            </div>
+            <div className="mt-4">
+                <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{label}</p>
+                <h4 className={`text-2xl lg:text-3xl font-bold ${isDark ? 'text-white' : 'text-[#1B1D21]'} tracking-tight`}>{value}</h4>
             </div>
         </div>
     );

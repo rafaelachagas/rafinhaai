@@ -9,6 +9,14 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { Header } from '@/components/Header';
 
+function formatTime(seconds?: number) {
+    if (!seconds) return '0m';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m`;
+}
+
 export default function Dashboard() {
     const router = useRouter();
     const { profile, loading: themeLoading, isDark } = useTheme();
@@ -168,7 +176,7 @@ export default function Dashboard() {
                                 <div className="max-w-md space-y-4 relative z-10">
                                     <p className="text-sm font-bold uppercase tracking-widest opacity-80">INTELIGÊNCIA ARTIFICIAL</p>
                                     <h1 className="text-4xl lg:text-5xl font-bold leading-tight tracking-tight">
-                                        Afie suas habilidades com <br /> Rafinha.AI
+                                        Afie suas habilidades com a <br /> IA da Formação
                                     </h1>
                                     <button
                                         onClick={() => router.push('/dashboard/tools')}
@@ -262,9 +270,9 @@ export default function Dashboard() {
 
                 {/* Course Progress Cards */}
                 <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <ProgressCard label="Vídeos Assistidos" value="2/8" category="IA Master" color="bg-[#6C5DD3]" isDark={isDark} />
-                    <ProgressCard label="Créditos IA" value="340/500" category="Rafinha.AI" color="bg-[#FF754C]" isDark={isDark} />
-                    <ProgressCard label="Exercícios" value="6/12" category="Treinamento" color="bg-[#3F8CFF]" isDark={isDark} />
+                    <ProgressCard label="Vídeos Assistidos" value={`${progress.filter(p => p.completed).length}`} category="Treinamento" color="bg-[#3F8CFF]" isDark={isDark} />
+                    <ProgressCard label="Tempo na Plataforma" value={formatTime(profile?.total_seconds_online)} category="Prática" color="bg-[#6C5DD3]" isDark={isDark} />
+                    <ProgressCard label="Créditos IA" value={`${profile?.ai_tools_used || 0} Usos`} category="IA da Formação" color="bg-[#FF754C]" isDark={isDark} />
                 </section>
 
                 {/* Continue Watching Section */}

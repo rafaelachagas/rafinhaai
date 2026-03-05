@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Rafinha.AI",
+  title: "Profissão do Futuro",
   description: "Formação Profissional do Futuro - Plataforma de Membros",
 };
 

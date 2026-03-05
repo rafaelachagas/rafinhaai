@@ -33,12 +33,10 @@ export async function POST(request: Request) {
                 return NextResponse.json({ message: 'User already exists, updated status' }, { status: 200 });
             }
 
-            // Criar o usuário no Supabase Auth
-            const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-                email,
-                password: tempPassword,
-                email_confirm: true,
-                user_metadata: { full_name: first_name }
+            // Criar o usuário no Supabase Auth usando Convite
+            // Isso cria a conta e JÁ DISPARA aquele email de "Invite User" que configuramos
+            const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+                data: { full_name: first_name }
             });
 
             if (authError || !authUser.user) {

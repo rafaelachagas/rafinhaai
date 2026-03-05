@@ -69,15 +69,15 @@ export default function ResetPasswordPage() {
             <div
                 className="pointer-events-none fixed inset-0 z-0 transition-opacity duration-1000 blur-[100px] hidden md:block"
                 style={{
-                    background: `radial-gradient(circle at center, ${isDark ? 'rgba(180, 42, 240, 0.15)' : 'rgba(180, 42, 240, 0.08)'
+                    background: `radial-gradient(circle at center, ${isDark ? 'rgba(108, 93, 211, 0.15)' : 'rgba(108, 93, 211, 0.08)'
                         } 0%, transparent 70%)`
                 }}
             />
 
             {/* Background Glows - Desktop only */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none hidden md:block">
-                <div className={`absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-[120px] animate-pulse transition-colors duration-500 will-change-[opacity,transform] ${isDark ? 'bg-[#B42AF0]/10' : 'bg-[#B42AF0]/5'}`}></div>
-                <div className={`absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full blur-[120px] animate-pulse delay-700 transition-colors duration-500 will-change-[opacity,transform] ${isDark ? 'bg-[#7D1AB8]/10' : 'bg-[#7D1AB8]/5'}`}></div>
+                <div className={`absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-[120px] animate-pulse transition-colors duration-500 will-change-[opacity,transform] ${isDark ? 'bg-[#6C5DD3]/10' : 'bg-[#6C5DD3]/5'}`}></div>
+                <div className={`absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full blur-[120px] animate-pulse delay-700 transition-colors duration-500 will-change-[opacity,transform] ${isDark ? 'bg-[#5b4fbe]/10' : 'bg-[#5b4fbe]/5'}`}></div>
             </div>
 
             <div className="w-full max-w-md relative z-10">
@@ -86,7 +86,7 @@ export default function ResetPasswordPage() {
                     : 'bg-white border-gray-100 text-gray-900'
                     } md:backdrop-blur-xl`}>
                     <div className="text-center mb-10">
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#B42AF0] to-[#7D1AB8] mb-6 shadow-lg shadow-[#B42AF0]/25">
+                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#6C5DD3] to-[#5b4fbe] mb-6 shadow-lg shadow-[#6C5DD3]/25">
                             <Sparkles className="text-white w-8 h-8" />
                         </div>
                         <h1 className={`text-3xl font-bold mb-2 tracking-tight transition-colors duration-500 ${isDark ? 'text-white' : 'text-gray-900'}`}>
@@ -104,7 +104,7 @@ export default function ResetPasswordPage() {
                                     Nova Senha
                                 </label>
                                 <div className="relative group">
-                                    <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? 'text-gray-300 group-focus-within:text-[#B42AF0]' : 'text-gray-400 group-focus-within:text-[#B42AF0]'
+                                    <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? 'text-gray-300 group-focus-within:text-[#6C5DD3]' : 'text-gray-400 group-focus-within:text-[#6C5DD3]'
                                         }`}>
                                         <Lock size={18} />
                                     </div>
@@ -112,7 +112,7 @@ export default function ResetPasswordPage() {
                                         type={showPassword ? 'text' : 'password'}
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className={`block w-full pl-11 pr-12 py-3.5 border rounded-2xl leading-5 transition-all focus:outline-none focus:ring-2 focus:ring-[#B42AF0]/40 focus:border-[#B42AF0]/40 ${isDark
+                                        className={`block w-full pl-11 pr-12 py-3.5 border rounded-2xl leading-5 transition-all focus:outline-none focus:ring-2 focus:ring-[#6C5DD3]/40 focus:border-[#6C5DD3]/40 ${isDark
                                             ? 'bg-white/5 border-white/10 text-gray-100 placeholder-gray-300'
                                             : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400'
                                             }`}
@@ -135,7 +135,7 @@ export default function ResetPasswordPage() {
                                     Confirmar Senha
                                 </label>
                                 <div className="relative group">
-                                    <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? 'text-gray-300 group-focus-within:text-[#B42AF0]' : 'text-gray-400 group-focus-within:text-[#B42AF0]'
+                                    <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? 'text-gray-300 group-focus-within:text-[#6C5DD3]' : 'text-gray-400 group-focus-within:text-[#6C5DD3]'
                                         }`}>
                                         <Lock size={18} />
                                     </div>
@@ -143,7 +143,7 @@ export default function ResetPasswordPage() {
                                         type={showPassword ? 'text' : 'password'}
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
-                                        className={`block w-full pl-11 pr-12 py-3.5 border rounded-2xl leading-5 transition-all focus:outline-none focus:ring-2 focus:ring-[#B42AF0]/40 focus:border-[#B42AF0]/40 ${isDark
+                                        className={`block w-full pl-11 pr-12 py-3.5 border rounded-2xl leading-5 transition-all focus:outline-none focus:ring-2 focus:ring-[#6C5DD3]/40 focus:border-[#6C5DD3]/40 ${isDark
                                             ? 'bg-white/5 border-white/10 text-gray-100 placeholder-gray-300'
                                             : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400'
                                             }`}
@@ -164,8 +164,8 @@ export default function ResetPasswordPage() {
                                 type="submit"
                                 disabled={loading}
                                 className={`w-full flex items-center justify-center py-4 px-4 border border-transparent rounded-2xl shadow-sm text-base font-bold text-white transition-all active:scale-[0.98] disabled:opacity-50 shadow-lg ${isDark
-                                    ? 'bg-gradient-to-r from-[#B42AF0] to-[#7D1AB8] hover:from-[#A21FDC] hover:to-[#6C179F] shadow-violet-950/40'
-                                    : 'bg-gradient-to-r from-[#B42AF0] to-[#7D1AB8] hover:from-[#A21FDC] hover:to-[#6C179F] shadow-[#B42AF0]/30'
+                                    ? 'bg-gradient-to-r from-[#6C5DD3] to-[#5b4fbe] hover:from-[#5b4fbe] hover:to-[#4a3ea3] shadow-violet-900/40'
+                                    : 'bg-gradient-to-r from-[#6C5DD3] to-[#5b4fbe] hover:from-[#5b4fbe] hover:to-[#4a3ea3] shadow-[#6C5DD3]/30'
                                     }`}
                             >
                                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
@@ -187,7 +187,7 @@ export default function ResetPasswordPage() {
                                 <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Senha atualizada!</h2>
                                 <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>Sua segurança foi reforçada. Redirecionando para o login...</p>
                             </div>
-                            <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#B42AF0]" />
+                            <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#6C5DD3]" />
                         </div>
                     )}
                 </div>

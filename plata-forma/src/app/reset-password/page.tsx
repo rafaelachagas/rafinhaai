@@ -19,14 +19,9 @@ export default function ResetPasswordPage() {
 
     useEffect(() => {
         setMounted(true);
-        const checkUser = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                router.push('/dashboard');
-            }
-        };
-        checkUser();
-    }, [router]);
+        // Não redirecionamos se houver sessão! O link de recuperação do Supabase 
+        // FAZ o login automático ("recovery session") para permitir a troca de senha.
+    }, []);
 
     const handleReset = async (e: React.FormEvent) => {
         e.preventDefault();

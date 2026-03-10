@@ -22,59 +22,125 @@ export async function POST(request: Request) {
 
         // 2. Lógica de Vendas Aprovadas (Criar Acesso)
         if (event === 'PURCHASE_APPROVED' || event === 'PURCHASE_COMPLETE') {
-            const first_name = buyerInfo.first_name || buyerInfo.name?.split(' ')[0] || 'Aluno';
+            const full_name = buyerInfo.name || 'Aluno';
+            const first_name = buyerInfo.first_name || full_name.split(' ')[0] || 'Aluno';
             const tempPassword = `Pf#${Math.random().toString(36).slice(-6)}!A`;
+            
+            // RELÓGIO DA PLATAFORMA: +1 Ano de Acesso
+            const dataAtual = new Date();
+            const dataVencimento = new Date(dataAtual.setFullYear(dataAtual.getFullYear() + 1));
+            const accessExpiresIso = dataVencimento.toISOString();
 
             // Verificar se usuário já existe
-            const { data: existingProfile } = await supabaseAdmin.from('profiles').select('id').eq('email', email).single();
+            const { data: existingProfile } = await supabaseAdmin.from('profiles').select('id, access_expires_at').eq('email', email).single();
             if (existingProfile) {
-                // Se já existir, apenas garanta que está ativo
-                await supabaseAdmin.from('profiles').update({ hotmart_status: 'approved' }).eq('id', existingProfile.id);
-                return NextResponse.json({ message: 'User already exists, updated status' }, { status: 200 });
+                
+                // Lógica de Renovação Acumulada: Se ela renovou antes de vencer o ano atual, 
+                // não roubamos o tempo dela, adicionamos +1 ano a partir da data de vencimento que ela já tinha.
+                let newExpiryDate = new Date(accessExpiresIso);
+                if (existingProfile.access_expires_at) {
+                    const currentExpiry = new Date(existingProfile.access_expires_at);
+                    if (currentExpiry > new Date()) {
+                        // Ainda tem tempo sobrando, soma 1 ano a partir daquele futuro
+                        newExpiryDate = new Date(currentExpiry.setFullYear(currentExpiry.getFullYear() + 1));
+                    }
+                }
+
+                // Se já existir, apenas garanta que está ativo e renove o acesso
+                await supabaseAdmin.from('profiles').update({ 
+                    hotmart_status: 'approved',
+                    access_expires_at: newExpiryDate.toISOString()
+                }).eq('id', existingProfile.id);
+                
+                // Muito importante: se ele estava banido (por um estorno anterior), nós "desbanimos" ele!
+                await supabaseAdmin.auth.admin.updateUserById(existingProfile.id, {
+                    ban_duration: 'none' // Remove o banimento
+                });
+
+                return NextResponse.json({ message: 'User already exists, updated status and lifted any bans' }, { status: 200 });
             }
 
-            // Criar o usuário no Supabase Auth usando Convite
-            // Isso cria a conta e JÁ DISPARA aquele email de "Invite User" que configuramos
+            // SOLUÇÃO 100% NATIVA DO SUPABASE (SEM FERRAMENTAS EXTERNAS):
+            // Voltamos para a função inviteUserByEmail porque ELA é a ÚNICA que o Supabase envia um e-mail de "Boas Vindas" automaticamente.
+            // O grande TRUQUE para resolver o erro de "Expirado":
+            // Mandei a senha provisória para dentro do email (payload data)
             const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-                data: { full_name: first_name }
+                data: { 
+                     full_name: full_name,
+                     temp_password: tempPassword // A MÁGICA TÁ AQUI
+                }
             });
 
             if (authError || !authUser.user) {
-                console.error('Erro ao criar usuário:', authError?.message);
+                console.error('Erro ao convitar usuário:', authError?.message);
                 return NextResponse.json({ error: authError?.message }, { status: 400 });
             }
 
-            // Salvar perfil adicional na tabela de Profiles
+            // Precisamos também Forçar a Senha Temporária na conta do usuário caso contrário ele não conseguirá logar pela primeira vez
+            await supabaseAdmin.auth.admin.updateUserById(authUser.user.id, {
+                password: tempPassword,
+                email_confirm: true // Já confirmamos pra evitar que o login exija o clique no botão do convite!
+            });
+
+            // Salvar perfil adicional na tabela de Profiles (COM O RELÓGIO)
             await supabaseAdmin.from('profiles').insert({
                 id: authUser.user.id,
                 email: email,
-                full_name: first_name,
+                full_name: full_name,
                 hotmart_status: 'approved',
-                role: 'user'
+                role: 'user',
+                access_expires_at: accessExpiresIso // Registra o vencimento na tabela para a plataforma ver
             });
 
-            console.log(`Usuário criado na plataforma via Hotmart: ${email}`);
+            console.log(`Usuário criado na plataforma via Hotmart: ${email} com validade até: ${accessExpiresIso}`);
             return NextResponse.json({ message: 'User created' }, { status: 201 });
         }
 
-        // 3. Lógica de Estorno, Cancelamento e Chargeback (Remover Acesso)
+        // 3. Lógica de Estorno, Calote no Boleto/Pix e Chargeback (Remover Acesso Imediato)
+        // NOTA: Removido o 'SUBSCRIPTION_CANCELLATION'. Alunos que cancelam renovação NÃO são estornados, 
+        // eles apenas não terão o tempo renovado na próxima fatura, mas usarão o que já pagaram até a data_expires_at bater.
         if (
-            event === 'PURCHASE_REFUNDED' ||
-            event === 'PURCHASE_CANCELED' ||
-            event === 'PURCHASE_CHARGEBACK' ||
-            event === 'SUBSCRIPTION_CANCELLATION'
+            event === 'PURCHASE_REFUNDED' || 
+            event === 'PURCHASE_CANCELED' || 
+            event === 'PURCHASE_CHARGEBACK'
         ) {
             // Acha o aluno pelo e-mail
             const { data: profileToBlock } = await supabaseAdmin.from('profiles').select('id').eq('email', email).single();
 
-            if (profileToBlock) {
-                // Expulsa e Deleta o usuário da Plataforma (Mata o Login via Auth admin)
-                await supabaseAdmin.auth.admin.deleteUser(profileToBlock.id);
+            let userId = profileToBlock?.id;
 
-                // Limpa o perfil do banco
-                await supabaseAdmin.from('profiles').delete().eq('id', profileToBlock.id);
+            // Se não achar no profile, tenta achar direto no Auth apenas por precaução
+            if (!userId) {
+                 const { data: { users }, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+                 if (users) {
+                     const authUser = users.find(u => u.email === email);
+                     if (authUser) userId = authUser.id;
+                 }
+            }
 
-                console.log(`ACESSO REVOGADO com sucesso para o aluno estornado: ${email} (Motivo: ${event})`);
+            if (userId) {
+                // Em vez de EXCLUIR, nós BANIMOS o usuário. Isso mantém o histórico dele intacto no banco
+                // mas impede que ele faça login na plataforma, forçando a segurança e revogando acesso imediatamente.
+                const { error: banError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+                    ban_duration: '876000h' // Baniu por 100 anos
+                });
+                
+                if (banError) {
+                    console.error('Erro ao banir usuário do Auth:', banError);
+                }
+
+                // Atualiza o perfil para mostrar que o acesso foi revogado/bloqueado
+                const { error: updateProfileError } = await supabaseAdmin.from('profiles')
+                    .update({ hotmart_status: 'revoked' })
+                    .eq('id', userId);
+                
+                if (updateProfileError) {
+                    console.error('Erro ao atualizar status do Profile:', updateProfileError);
+                }
+
+                console.log(`ACESSO REVOGADO/BANIDO com sucesso para o aluno estornado: ${email} (Motivo: ${event})`);
+            } else {
+                console.log(`Tentativa de revogar acesso para ${email}, mas o usuário não foi encontrado.`);
             }
             return NextResponse.json({ message: 'User access successfully revoked' }, { status: 200 });
         }

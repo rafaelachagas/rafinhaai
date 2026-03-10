@@ -17,6 +17,7 @@ interface UserProfile {
     last_active_at?: string | null;
     login_count?: number;
     ai_tools_used?: number;
+    access_expires_at?: string;
     total_seconds_online?: number;
 }
 

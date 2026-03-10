@@ -11,11 +11,22 @@ export function TermsPopup() {
     const [isOpen, setIsOpen] = useState(false);
     const [termsHtml, setTermsHtml] = useState('Carregando termos de uso...');
     const [loading, setLoading] = useState(false);
+    const [isExpired, setIsExpired] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Determines if we need to show the popup
+    // Determines if we need to show the popup or if access is expired
     useEffect(() => {
         if (!profile) return;
+
+        // Verifica se expirou primeiro
+        if (profile.access_expires_at) {
+            const expiryDate = new Date(profile.access_expires_at).getTime();
+            if (expiryDate < Date.now()) {
+                setIsExpired(true);
+                setIsOpen(true);
+                return; // Para a execução se o acesso expirou
+            }
+        }
 
         const checkTerms = async () => {
             // First time login (no check) or > 14 days without active login
@@ -79,6 +90,41 @@ export function TermsPopup() {
     };
 
     if (!isOpen) return null;
+
+    if (isExpired) {
+        return (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-black/80 backdrop-blur-md pointer-events-none" />
+                <div className={`relative w-full max-w-lg flex flex-col rounded-[2.5rem] border overflow-hidden animate-in zoom-in duration-300 shadow-2xl ${isDark ? 'bg-[#120222] border-red-500/20' : 'bg-white border-red-100'}`}>
+                    <div className="p-10 text-center space-y-6">
+                        <div className="w-20 h-20 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto shadow-inner shadow-red-500/20">
+                            <AlertCircle className="text-red-500 w-10 h-10" />
+                        </div>
+                        <div>
+                            <h2 className={`text-2xl font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>Acesso Expirado</h2>
+                            <p className={`text-base leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                Seu período de 1 ano de acesso à Plataforma Profissão do Futuro chegou ao fim. 
+                                Para continuar acessando os conteúdos e ferramentas de Inteligência Artificial, por favor, realize a renovação do seu plano.
+                            </p>
+                        </div>
+                        <div className="pt-4">
+                            <a
+                                href="https://pay.hotmart.com/G95062680D?off=s4p88ht4"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-full inline-flex items-center justify-center bg-gradient-to-r from-red-500 to-rose-600 hover:from-rose-600 hover:to-red-700 text-white py-4 px-8 rounded-2xl font-bold transition-all active:scale-[0.98] shadow-lg shadow-red-500/25"
+                            >
+                                Renovar meu acesso agora
+                            </a>
+                        </div>
+                        <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                            Já renovou? O sistema atualizará seu acesso automaticamente em alguns instantes. Recarregue a página.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">

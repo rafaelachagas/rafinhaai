@@ -1,6 +1,7 @@
 ALTER TABLE public.profiles 
 ADD COLUMN IF NOT EXISTS total_seconds_online INT DEFAULT 0,
-ADD COLUMN IF NOT EXISTS ai_seconds_online INT DEFAULT 0;
+ADD COLUMN IF NOT EXISTS ai_seconds_online INT DEFAULT 0,
+ADD COLUMN IF NOT EXISTS access_expires_at TIMESTAMPTZ NULL;
 
 CREATE OR REPLACE FUNCTION increment_time_online(p_user_id UUID, p_seconds INT)
 RETURNS void AS $$

@@ -17,14 +17,9 @@ export default function ForgotPasswordPage() {
 
     useEffect(() => {
         setMounted(true);
-        const checkUser = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                router.push('/dashboard');
-            }
-        };
-        checkUser();
-    }, [router]);
+        // Removemos a verificação de sessão aqui para evitar que usuários com
+        // sessões corrompidas ou antigas sejam jogados pro dashboard ao tentar recuperar a senha
+    }, []);
 
     const handleReset = async (e: React.FormEvent) => {
         e.preventDefault();

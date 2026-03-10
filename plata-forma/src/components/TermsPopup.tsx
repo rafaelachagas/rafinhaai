@@ -23,9 +23,6 @@ export function TermsPopup() {
         if (profile.hotmart_status === 'revoked') {
             setIsRevoked(true);
             setIsOpen(true);
-            
-            // Força deslogar no client pra destruir o token JWT ativo 
-            supabase.auth.signOut().then();
             return;
         }
 

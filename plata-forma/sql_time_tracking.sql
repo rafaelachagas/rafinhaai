@@ -11,14 +11,3 @@ BEGIN
   WHERE id = p_user_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
-
--- 1. Muda o status dela na sua tabela Profiles para mostrar como bloqueado
-UPDATE public.profiles
-SET hotmart_status = 'revoked'
-WHERE email = 'milena9928vicente@gmail.com';
-
--- 2. Bane a pessoa diretamente do Autenticador do Supabase por 100 anos (Ela tá expulsa)
-UPDATE auth.users
-SET banned_until = NOW() + INTERVAL '100 years'
-WHERE email = 'milena9928vicente@gmail.com';

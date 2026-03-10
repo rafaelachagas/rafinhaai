@@ -57,10 +57,8 @@ export async function POST(request: Request) {
                     console.error("Erro ao atualizar perfil existente:", existingUpdateError);
                 }
 
-                // Muito importante: se ele estava banido (por um estorno anterior), nós "desbanimos" ele!
-                await supabaseAdmin.auth.admin.updateUserById(existingProfile.id, {
-                    ban_duration: 'none' // Remove o banimento
-                });
+                // Removemos a lógica de update user pra dar unban, pois não estamos banindo mais.
+                // Atualiza o perfil apenas.
 
                 return NextResponse.json({ message: 'User already exists, updated status, name, and lifted any bans' }, { status: 200 });
             }
@@ -136,17 +134,9 @@ export async function POST(request: Request) {
             }
 
             if (userId) {
-                // Em vez de EXCLUIR, nós BANIMOS o usuário. Isso mantém o histórico dele intacto no banco
-                // mas impede que ele faça login na plataforma, forçando a segurança e revogando acesso imediatamente.
-                const { error: banError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-                    ban_duration: '876000h' // Baniu por 100 anos
-                });
-                
-                if (banError) {
-                    console.error('Erro ao banir usuário do Auth:', banError);
-                }
-
-                // Atualiza o perfil para mostrar que o acesso foi revogado/bloqueado
+                // Em vez de BANIR no Auth (que impede o login e mostra um erro feio),
+                // nós apenas atualizamos o perfil para 'revoked', o que aciona a tela preta de bloqueio 
+                // por cima do Dashboard para o usuário entender o que aconteceu!                // Atualiza o perfil para mostrar que o acesso foi revogado/bloqueado
                 const { error: updateProfileError } = await supabaseAdmin.from('profiles')
                     .update({ hotmart_status: 'revoked' })
                     .eq('id', userId);

@@ -113,7 +113,13 @@ export async function POST(request: Request) {
         if (
             event === 'PURCHASE_REFUNDED' || 
             event === 'PURCHASE_CANCELED' || 
-            event === 'PURCHASE_CHARGEBACK'
+            event === 'PURCHASE_CHARGEBACK' ||
+            event === 'PURCHASE_BILLET_CANCELED' ||
+            event === 'PURCHASE_PROTEST' ||
+            event === 'PURCHASE_DELAYED' ||
+            event === 'PURCHASE_EXPIRED' ||
+            event === 'PURCHASE_RETURNED' ||
+            event === 'PURCHASE_CHARGEBACK_DISPUTE'
         ) {
             // Acha o aluno pelo e-mail
             const { data: profileToBlock } = await supabaseAdmin.from('profiles').select('id').eq('email', email).single();

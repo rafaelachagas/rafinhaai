@@ -46,18 +46,23 @@ export async function POST(request: Request) {
                     }
                 }
 
-                // Se já existir, apenas garanta que está ativo e renove o acesso
-                await supabaseAdmin.from('profiles').update({ 
+                // Se já existir, apenas garanta que está ativo, renove o acesso e ATUALIZE O NOME
+                const { error: existingUpdateError } = await supabaseAdmin.from('profiles').update({ 
+                    full_name: full_name,
                     hotmart_status: 'approved',
                     access_expires_at: newExpiryDate.toISOString()
                 }).eq('id', existingProfile.id);
                 
+                if (existingUpdateError) {
+                    console.error("Erro ao atualizar perfil existente:", existingUpdateError);
+                }
+
                 // Muito importante: se ele estava banido (por um estorno anterior), nós "desbanimos" ele!
                 await supabaseAdmin.auth.admin.updateUserById(existingProfile.id, {
                     ban_duration: 'none' // Remove o banimento
                 });
 
-                return NextResponse.json({ message: 'User already exists, updated status and lifted any bans' }, { status: 200 });
+                return NextResponse.json({ message: 'User already exists, updated status, name, and lifted any bans' }, { status: 200 });
             }
 
             // SOLUÇÃO 100% NATIVA DO SUPABASE (SEM FERRAMENTAS EXTERNAS):

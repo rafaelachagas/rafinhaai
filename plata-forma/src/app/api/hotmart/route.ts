@@ -83,7 +83,9 @@ export async function POST(request: Request) {
             });
 
             // Salvar perfil adicional na tabela de Profiles (COM O RELÓGIO)
-            await supabaseAdmin.from('profiles').insert({
+            // Usamos UPSERT aqui para garantir que se algum trigger do Supabase já tiver criado o perfil em branco, 
+            // a gente sobrescreve/atualiza preenchendo o Nome e a Data de Validade corretamente.
+            const { error: profileError } = await supabaseAdmin.from('profiles').upsert({
                 id: authUser.user.id,
                 email: email,
                 full_name: full_name,
@@ -91,6 +93,10 @@ export async function POST(request: Request) {
                 role: 'user',
                 access_expires_at: accessExpiresIso // Registra o vencimento na tabela para a plataforma ver
             });
+
+            if (profileError) {
+                console.error("Erro ao salvar no profiles (nome ficou vazio possivelmente):", profileError);
+            }
 
             console.log(`Usuário criado na plataforma via Hotmart: ${email} com validade até: ${accessExpiresIso}`);
             return NextResponse.json({ message: 'User created' }, { status: 201 });

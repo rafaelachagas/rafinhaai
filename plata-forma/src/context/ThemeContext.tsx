@@ -19,6 +19,7 @@ interface UserProfile {
     ai_tools_used?: number;
     access_expires_at?: string;
     total_seconds_online?: number;
+    hotmart_status?: string | null;
 }
 
 interface ThemeContextType {

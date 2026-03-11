@@ -6,6 +6,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { ArrowLeft, CheckCircle2, Check, Play, ChevronRight, Clock } from 'lucide-react';
 import { bbcodeToHtml } from '@/utils/bbcode';
+import { TermsPopup } from '@/components/TermsPopup';
 
 interface Lesson {
     id: string;
@@ -325,6 +326,7 @@ export default function LessonPage() {
                     </div>
                 </div>
             </div>
+            <TermsPopup />
         </div>
     );
 }

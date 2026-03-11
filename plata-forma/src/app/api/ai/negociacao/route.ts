@@ -11,7 +11,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Conversa vazia.' }, { status: 400 });
         }
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
         const systemPrompt = `
 Você é um simulador de negociação chamado Rafinha.AI. Você vai interpretar o papel de um CLIENTE DIFÍCIL que está interessado em comprar mas tem muitas objeções.

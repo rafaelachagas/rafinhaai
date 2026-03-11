@@ -45,10 +45,7 @@ export default function AnalisePage() {
         }
     }, [profile, themeLoading, router]);
 
-    async function fetchUnreadCount() {
-        if (!profile?.id) return;
-        const { data: recent }
-
+    
     const fetchHistory = async () => {
         if (!profile?.id) return;
         setLoadingHistory(true);
@@ -65,7 +62,11 @@ export default function AnalisePage() {
 
     useEffect(() => {
         if (activeTab === 'historico') fetchHistory();
-    }, [activeTab, profile]); = await supabase.from('messages').select('*').or(`recipient_id.eq.${profile?.id},recipient_id.is.null`).order('created_at', { ascending: false }).limit(5);
+    }, [activeTab, profile]);
+
+    async function fetchUnreadCount() {
+        if (!profile?.id) return;
+        const { data: recent } = await supabase.from('messages').select('*').or(`recipient_id.eq.${profile?.id},recipient_id.is.null`).order('created_at', { ascending: false }).limit(5);
         if (recent) setRecentMessages(recent);
         const { count } = await supabase.from('messages').select('*', { count: 'exact', head: true }).or(`recipient_id.eq.${profile?.id},recipient_id.is.null`).eq('is_read', false);
         if (count !== null) setUnreadCount(count);
@@ -338,9 +339,7 @@ export default function AnalisePage() {
                             </div>
                         </div>
                     </div>
-                ) : (
-                    
-)}
+                )}
             </main>
         </div>
     );

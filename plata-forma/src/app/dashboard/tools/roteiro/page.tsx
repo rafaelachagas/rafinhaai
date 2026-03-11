@@ -430,26 +430,26 @@ export default function RoteiroPage() {
 
                         {/* Hidden PDF container */}
                         <div className="absolute top-0 left-[-9999px] hidden">
-                            <div ref={contentRef} className="w-[800px] p-12 bg-white text-gray-800 font-sans">
+                            <div ref={contentRef} className="w-[800px] p-12 bg-[#ffffff] text-[#1f2937] font-sans">
                                 {/* Logo (placeholder via next/image or standard img) */}
-                                <div className="flex justify-center mb-10 border-b pb-8 border-gray-200">
+                                <div className="flex justify-center mb-10 border-b pb-8 border-[#e5e7eb]">
                                     <img src="/logo-original-si.png" alt="Logo" className="h-14 object-contain" />
                                 </div>
                                 
                                 {/* Content formatting for PDF specifically */}
-                                <div className="prose max-w-none text-gray-800
-                                    [&>p]:mb-6 [&>p]:leading-relaxed [&>p]:text-base
-                                    [&>h1]:text-3xl [&>h1]:font-black [&>h1]:mb-6 [&>h1]:mt-8 [&>h1]:text-[#6C5DD3]
-                                    [&>h2]:text-2xl [&>h2]:font-bold [&>h2]:mb-4 [&>h2]:mt-8 [&>h2]:text-[#6C5DD3]
-                                    [&>h3]:text-xl [&>h3]:font-bold [&>h3]:mb-3 [&>h3]:mt-6 
-                                    [&>ul]:list-disc [&>ul]:ml-6 [&>ul]:mb-6 [&>ul>li]:mb-2
-                                    [&>ol]:list-decimal [&>ol]:ml-6 [&>ol]:mb-6 [&>ol>li]:mb-2
-                                    [&_strong]:font-bold [&_strong]:text-black">
+                                <div className="text-[#1f2937]
+                                    [&_p]:mb-6 [&_p]:leading-relaxed [&_p]:text-base
+                                    [&_h1]:text-3xl [&_h1]:font-black [&_h1]:mb-6 [&_h1]:mt-8 [&_h1]:text-[#6C5DD3]
+                                    [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:mb-4 [&_h2]:mt-8 [&_h2]:text-[#6C5DD3]
+                                    [&_h3]:text-xl [&_h3]:font-bold [&_h3]:mb-3 [&_h3]:mt-6 [&_h3]:text-[#6C5DD3]
+                                    [&_ul]:list-disc [&_ul]:ml-6 [&_ul]:mb-6 [&_ul_li]:mb-2
+                                    [&_ol]:list-decimal [&_ol]:ml-6 [&_ol]:mb-6 [&_ol_li]:mb-2
+                                    [&_strong]:font-bold [&_strong]:text-[#000000]">
                                     <ReactMarkdown>{script}</ReactMarkdown>
                                 </div>
                                 
                                 {/* Footer Credits */}
-                                <div className="mt-16 pt-8 border-t border-gray-200 text-center text-sm font-medium text-gray-500">
+                                <div className="mt-16 pt-8 border-t border-[#e5e7eb] text-center text-sm font-medium text-[#6b7280]">
                                     Roteiro gerado pelo App Profissão do Futuro.
                                 </div>
                             </div>

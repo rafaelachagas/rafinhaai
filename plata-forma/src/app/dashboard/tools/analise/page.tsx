@@ -109,7 +109,7 @@ export default function AnalisePage() {
         try {
             const html2pdf = (await import('html2pdf.js')).default;
             const element = contentRef.current;
-            element.parentElement.style.display = 'block';
+            if (element.parentElement) element.parentElement.style.display = 'block';
             
             const opt = {
                 margin:       15,
@@ -120,7 +120,7 @@ export default function AnalisePage() {
             };
             
             await html2pdf().set(opt).from(element).save();
-            element.parentElement.style.display = 'none';
+            if (element.parentElement) element.parentElement.style.display = 'none';
         } catch (error) {
             console.error('Erro ao gerar PDF', error);
         } finally {

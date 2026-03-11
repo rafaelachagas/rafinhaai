@@ -12,7 +12,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Preencha todos os campos obrigatórios da triagem.' }, { status: 400 });
         }
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
 
         const fullPrompt = `
 Você é um roteirista e copywriter de elite, especialista em vendas digitais, influência e marketing de conteúdo. Seu nome é Rafinha.AI.

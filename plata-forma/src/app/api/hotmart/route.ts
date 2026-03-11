@@ -13,6 +13,7 @@ export async function POST(request: Request) {
 
         const event = payload.event;
         const buyerInfo = payload.data?.buyer;
+        const transactionId = payload.data?.purchase?.transaction;
 
         if (!buyerInfo || !buyerInfo.email) {
             return NextResponse.json({ message: 'Event ignored - No buyer data' }, { status: 200 });
@@ -60,6 +61,15 @@ export async function POST(request: Request) {
                 // Removemos a lógica de update user pra dar unban, pois não estamos banindo mais.
                 // Atualiza o perfil apenas.
 
+                // Salva ou atualiza a transação para constar que ele tem esse recibo ativo
+                if (transactionId) {
+                    await supabaseAdmin.from('hotmart_transactions').upsert({
+                        user_id: existingProfile.id,
+                        transaction_id: transactionId,
+                        status: 'approved'
+                    }, { onConflict: 'transaction_id' });
+                }
+
                 return NextResponse.json({ message: 'User already exists, updated status, name, and lifted any bans' }, { status: 200 });
             }
 
@@ -101,6 +111,15 @@ export async function POST(request: Request) {
                 console.error("Erro ao salvar no profiles (nome ficou vazio possivelmente):", profileError);
             }
 
+            // Salva a transação para este novo usuário
+            if (transactionId) {
+                await supabaseAdmin.from('hotmart_transactions').upsert({
+                    user_id: authUser.user.id,
+                    transaction_id: transactionId,
+                    status: 'approved'
+                }, { onConflict: 'transaction_id' });
+            }
+
             console.log(`Usuário criado na plataforma via Hotmart: ${email} com validade até: ${accessExpiresIso}`);
             return NextResponse.json({ message: 'User created' }, { status: 201 });
         }
@@ -134,9 +153,28 @@ export async function POST(request: Request) {
             }
 
             if (userId) {
-                // Em vez de BANIR no Auth (que impede o login e mostra um erro feio),
-                // nós apenas atualizamos o perfil para 'revoked', o que aciona a tela preta de bloqueio 
-                // por cima do Dashboard para o usuário entender o que aconteceu!                // Atualiza o perfil para mostrar que o acesso foi revogado/bloqueado
+                // Se tiver vindo o número da transação específica que estornou, a gente mata ELA primeiro
+                if (transactionId) {
+                    await supabaseAdmin.from('hotmart_transactions')
+                        .update({ status: 'revoked' })
+                        .eq('transaction_id', transactionId);
+                }
+
+                // VERIFICAÇÃO DE OURO: Esse aluno tem OUTRA transação "approved" rolando no banco dele?
+                // Ex: Comprou 2x, estornou 1x só e ficou a outra
+                const { count } = await supabaseAdmin
+                    .from('hotmart_transactions')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('user_id', userId)
+                    .eq('status', 'approved');
+
+                if (count !== null && count > 0) {
+                    console.log(`O aluno ${email} teve a transação ${transactionId} revogada, MAS ele ainda tem ${count} outra(s) compra(s) válidas ativas. Acesso MANTIDO!`);
+                    return NextResponse.json({ message: `Transaction ${transactionId} revoked, but user access kept due to other active purchases.` }, { status: 200 });
+                }
+
+                // Se chegou aqui, ele não tem mais NENHUMA compra válida, descemos a machadada
+                // Atualiza o perfil para mostrar que o acesso foi revogado/bloqueado
                 const { error: updateProfileError } = await supabaseAdmin.from('profiles')
                     .update({ hotmart_status: 'revoked' })
                     .eq('id', userId);

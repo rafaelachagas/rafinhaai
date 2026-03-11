@@ -178,18 +178,18 @@ export default function NegociacaoPage() {
         try {
             const html2pdf = (await import('html2pdf.js')).default;
             const element = contentRef.current;
-            element.parentElement.classList.remove('h-0', 'w-0', 'overflow-hidden');
+            element.parentElement.style.display = 'block';
             
             const opt = {
                 margin:       15,
                 filename:     'Simulacao_Vendas_IA.pdf',
-                image:        { type: 'jpeg' as const, quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true, letterRendering: true, windowWidth: 800 },
+                image:        { type: 'jpeg' as const, quality: 1 },
+                html2canvas:  { scale: 2, useCORS: true, windowWidth: 800, letterRendering: true },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
             };
             
             await html2pdf().set(opt).from(element).save();
-            element.parentElement.classList.add('h-0', 'w-0', 'overflow-hidden');
+            element.parentElement.style.display = 'none';
         } catch (error) {
             console.error('Erro ao gerar PDF', error);
         } finally {
@@ -385,31 +385,35 @@ export default function NegociacaoPage() {
                             </div>
                         )}
                                                 {/* Hidden PDF container */}
-                        <div className="absolute h-0 w-0 overflow-hidden">
-                            <div ref={contentRef} style={{ width: '800px', padding: '40px', backgroundColor: '#ffffff', color: '#1f2937' }} className="font-sans break-words">
+                        <div style={{ display: 'none', position: 'absolute', top: '-9999px', left: '-9999px' }}>
+                            <div ref={contentRef} style={{ width: '800px', backgroundColor: '#ffffff', color: '#1f2937', padding: '40px', boxSizing: 'border-box' }} className="font-sans">
                                 {/* Logo */}
                                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '32px', borderBottom: '1px solid #e5e7eb', paddingBottom: '24px' }}>
                                     <img src="/logo-original-si.png" alt="Logo" style={{ height: '56px', objectFit: 'contain' }} />
                                 </div>
+                                
                                 {/* Content */}
-                                <div className="text-[#1f2937] text-sm
-                                    [&_p]:mb-4 [&_p]:leading-relaxed
-                                    [&_h1]:text-2xl [&_h1]:font-black [&_h1]:mb-4 [&_h1]:mt-6 [&_h1]:text-[#10B981]
-                                    [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:mt-6 [&_h2]:text-[#10B981]
-                                    [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mb-2 [&_h3]:mt-4 [&_h3]:text-[#10B981]
-                                    [&_ul]:list-disc [&_ul]:ml-5 [&_ul]:mb-4 [&_ul_li]:mb-1
-                                    [&_ol]:list-decimal [&_ol]:ml-5 [&_ol]:mb-4 [&_ol_li]:mb-1
-                                    [&_strong]:font-bold [&_strong]:text-[#000000]
-                                    [&_hr]:my-6 [&_hr]:border-[#e5e7eb]">
-                                    <ReactMarkdown>{feedback}</ReactMarkdown>
+                                <div className="text-[#1f2937] text-sm" style={{ width: '100%', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+                                    <div className="
+                                        [&_p]:mb-4 [&_p]:leading-relaxed
+                                        [&_h1]:text-2xl [&_h1]:font-black [&_h1]:mb-4 [&_h1]:mt-6 [&_h1]:text-[#10B981]
+                                        [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:mt-6 [&_h2]:text-[#10B981]
+                                        [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mb-2 [&_h3]:mt-4 [&_h3]:text-[#10B981]
+                                        [&_ul]:list-disc [&_ul]:ml-5 [&_ul]:mb-4 [&_ul_li]:mb-1
+                                        [&_ol]:list-decimal [&_ol]:ml-5 [&_ol]:mb-4 [&_ol_li]:mb-1
+                                        [&_strong]:font-bold [&_strong]:text-[#000000]
+                                        [&_hr]:my-6 [&_hr]:border-[#e5e7eb]
+                                    ">
+                                        <ReactMarkdown>{feedback}</ReactMarkdown>
+                                    </div>
                                 </div>
+                                
                                 {/* Footer */}
                                 <div style={{ marginTop: '48px', paddingTop: '24px', borderTop: '1px solid #e5e7eb', textAlign: 'center', fontSize: '12px', fontWeight: '500', color: '#6b7280' }}>
                                     Simulação de Vendas gerada pelo App Profissão do Futuro.
                                 </div>
                             </div>
-                        </div>
-                    </div>
+                        </div></div>
                 ) : (
                     /* ===== CHAT ===== */
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

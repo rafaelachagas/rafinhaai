@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
 import { supabase } from '@/lib/supabase/client';
 import { Header } from '@/components/Header';
 import {
     Sparkles, PenTool, Loader2, Copy, Check, ArrowLeft, ArrowRight,
-    Target, Users, ShoppingBag, Monitor, Megaphone, MessageCircle, ChevronRight
+    Target, Users, ShoppingBag, Monitor, Megaphone, MessageCircle, ChevronRight, Download, History, Plus
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
@@ -39,6 +39,13 @@ export default function RoteiroPage() {
     const [generating, setGenerating] = useState(false);
     const [script, setScript] = useState('');
     const [copied, setCopied] = useState(false);
+    const [downloadingPDF, setDownloadingPDF] = useState(false);
+
+    // History state
+    const [activeTab, setActiveTab] = useState<'novo' | 'historico'>('novo');
+    const [history, setHistory] = useState<any[]>([]);
+    const [loadingHistory, setLoadingHistory] = useState(false);
+    const contentRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (!themeLoading) {
@@ -62,6 +69,26 @@ export default function RoteiroPage() {
         const { count } = await supabase.from('messages').select('*', { count: 'exact', head: true }).or(`recipient_id.eq.${profile?.id},recipient_id.is.null`).eq('is_read', false);
         if (count !== null) setUnreadCount(count);
     }
+
+    const fetchHistory = async () => {
+        if (!profile?.id) return;
+        setLoadingHistory(true);
+        const { data } = await supabase
+            .from('ai_content_history')
+            .select('*')
+            .eq('user_id', profile.id)
+            .eq('tool_type', 'roteiro')
+            .order('created_at', { ascending: false });
+        
+        if (data) setHistory(data);
+        setLoadingHistory(false);
+    };
+
+    useEffect(() => {
+        if (activeTab === 'historico') {
+            fetchHistory();
+        }
+    }, [activeTab, profile]);
 
     const currentField = STEPS[currentStep];
     const canProceed = formData[currentField?.id]?.trim().length > 0;
@@ -88,8 +115,20 @@ export default function RoteiroPage() {
                 body: JSON.stringify(formData),
             });
             const data = await res.json();
-            if (data.script) setScript(data.script);
-            else setScript('Erro ao gerar roteiro. Tente novamente.');
+            if (data.script) {
+                setScript(data.script);
+                // Salvar no histórico
+                if (profile?.id) {
+                    await supabase.from('ai_content_history').insert([{
+                        user_id: profile.id,
+                        tool_type: 'roteiro',
+                        input_data: formData,
+                        output_content: data.script
+                    }]);
+                }
+            } else {
+                setScript('Erro ao gerar roteiro. Tente novamente.');
+            }
         } catch {
             setScript('Erro de conexão. Verifique sua internet e tente novamente.');
         } finally {
@@ -102,12 +141,39 @@ export default function RoteiroPage() {
         setFormData({ nicho: '', avatar: '', produto: '', plataforma: '', objetivo: '', tomVoz: '' });
         setTriageCompleted(false);
         setScript('');
+        setActiveTab('novo');
     };
 
     const copyToClipboard = () => {
-        navigator.clipboard.writeText(script);
+        const textToCopy = `${script}\n\n---\nRoteiro gerado pelo App Profissão do Futuro.`;
+        navigator.clipboard.writeText(textToCopy);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
+    };
+
+    const downloadPDF = async () => {
+        if (!contentRef.current) return;
+        setDownloadingPDF(true);
+        try {
+            const html2pdf = (await import('html2pdf.js')).default;
+            const element = contentRef.current;
+            element.classList.remove('hidden');
+            
+            const opt = {
+                margin:       15,
+                filename:     'Roteiro_Gerado_IA.pdf',
+                image:        { type: 'jpeg' as const, quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
+            };
+            
+            await html2pdf().set(opt).from(element).save();
+            element.classList.add('hidden');
+        } catch (error) {
+            console.error('Erro ao gerar PDF', error);
+        } finally {
+            setDownloadingPDF(false);
+        }
     };
 
     if (loading || themeLoading) return null;
@@ -125,24 +191,80 @@ export default function RoteiroPage() {
                     Voltar para Ferramentas
                 </button>
 
-                {/* Page Title */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-[#6C5DD3] font-black text-[10px] uppercase tracking-[0.4em]">
-                            <Sparkles size={12} />
-                            Gerador de Roteiros com IA
+                {/* Page Title & Tabs */}
+                <div className="flex flex-col gap-6">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-[#6C5DD3] font-black text-[10px] uppercase tracking-[0.4em]">
+                                <Sparkles size={12} />
+                                Gerador de Roteiros com IA
+                            </div>
+                            <h1 className={`text-4xl lg:text-5xl font-extrabold tracking-tight ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>
+                                Criar <span className="text-[#6C5DD3]">Roteiro</span>
+                            </h1>
+                            <p className="text-gray-400 font-medium max-w-md">
+                                Responda a triagem abaixo e receba um roteiro altamente personalizado para o seu conteúdo.
+                            </p>
                         </div>
-                        <h1 className={`text-4xl lg:text-5xl font-extrabold tracking-tight ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>
-                            Criar <span className="text-[#6C5DD3]">Roteiro</span>
-                        </h1>
-                        <p className="text-gray-400 font-medium max-w-md">
-                            Responda a triagem abaixo e receba um roteiro altamente personalizado para o seu conteúdo.
-                        </p>
+                    </div>
+
+                    {/* Tabs */}
+                    <div className="flex items-center gap-4">
+                        <button 
+                            onClick={() => setActiveTab('novo')}
+                            className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm transition-all ${activeTab === 'novo' ? 'bg-[#6C5DD3] text-white shadow-lg shadow-[#6C5DD3]/30' : isDark ? 'bg-white/5 text-gray-400 hover:text-white' : 'bg-gray-100 text-gray-500 hover:text-gray-900'}`}
+                        >
+                            <Plus size={18} /> Novo Roteiro
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('historico')}
+                            className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm transition-all ${activeTab === 'historico' ? 'bg-[#6C5DD3] text-white shadow-lg shadow-[#6C5DD3]/30' : isDark ? 'bg-white/5 text-gray-400 hover:text-white' : 'bg-gray-100 text-gray-500 hover:text-gray-900'}`}
+                        >
+                            <History size={18} /> Histórico
+                        </button>
                     </div>
                 </div>
 
                 {/* Content Area */}
-                {!triageCompleted ? (
+                {activeTab === 'historico' ? (
+                    <div className={`p-8 rounded-[2.5rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'}`}>
+                        <h2 className={`text-2xl font-bold mb-6 ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>Seu Histórico de Roteiros</h2>
+                        {loadingHistory ? (
+                            <div className="flex items-center justify-center p-12">
+                                <Loader2 className="w-8 h-8 text-[#6C5DD3] animate-spin" />
+                            </div>
+                        ) : history.length === 0 ? (
+                            <div className="text-center p-12 text-gray-500">
+                                Você ainda não gerou nenhum roteiro.
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {history.map((item) => (
+                                    <div key={item.id} className={`p-6 rounded-2xl border ${isDark ? 'bg-white/5 border-white/10 hover:bg-white/10' : 'bg-gray-50 border-gray-200 hover:shadow-md'} transition-all flex flex-col justify-between`}>
+                                        <div className="mb-4">
+                                            <h3 className={`font-bold text-lg mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>{item.input_data.produto || 'Roteiro Gerado'}</h3>
+                                            <p className="text-sm text-gray-500">{new Date(item.created_at).toLocaleString('pt-BR')}</p>
+                                        </div>
+                                        <div className="flex gap-2 flex-wrap mb-4">
+                                            <span className="text-xs px-3 py-1 bg-[#6C5DD3]/10 text-[#6C5DD3] font-bold rounded-lg">{item.input_data.plataforma}</span>
+                                            <span className="text-xs px-3 py-1 bg-gray-200 dark:bg-black/30 rounded-lg text-gray-600 dark:text-gray-400">{item.input_data.nicho}</span>
+                                        </div>
+                                        <button 
+                                            onClick={() => {
+                                                setScript(item.output_content);
+                                                setTriageCompleted(true);
+                                                setActiveTab('novo');
+                                            }}
+                                            className={`w-full py-3 ${isDark ? 'bg-white/5 hover:bg-[#6C5DD3] text-white' : 'bg-white border border-gray-200 hover:border-[#6C5DD3] hover:text-[#6C5DD3] text-gray-700'} font-bold text-sm rounded-xl transition-all`}
+                                        >
+                                            Visualizar Roteiro
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                ) : !triageCompleted ? (
                     /* ===== TRIAGE FORM ===== */
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                         {/* Progress Steps */}
@@ -278,6 +400,9 @@ export default function RoteiroPage() {
                                         <h3 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>Seu roteiro personalizado está pronto!</h3>
                                     </div>
                                     <div className="flex items-center gap-3">
+                                        <button onClick={downloadPDF} disabled={downloadingPDF} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all border ${isDark ? 'bg-white/5 border-white/10 hover:bg-white/10 text-gray-300' : 'bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-700'} ${downloadingPDF ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                            {downloadingPDF ? <><Loader2 size={16} className="animate-spin" /> Gerando PDF...</> : <><Download size={16} /> Salvar PDF</>}
+                                        </button>
                                         <button onClick={copyToClipboard} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all border ${isDark ? 'bg-white/5 border-white/10 hover:bg-[#6C5DD3] hover:border-[#6C5DD3] hover:text-white text-gray-300' : 'bg-gray-50 border-gray-200 hover:bg-[#6C5DD3] hover:text-white text-gray-700'}`}>
                                             {copied ? <><Check size={16} /> Copiado!</> : <><Copy size={16} /> Copiar</>}
                                         </button>
@@ -288,12 +413,47 @@ export default function RoteiroPage() {
                                 </div>
 
                                 <div className={`p-8 rounded-[2rem] border ${isDark ? 'bg-black/30 border-white/5' : 'bg-gray-50 border-gray-100'}`}>
-                                    <div className={`prose max-w-none ${isDark ? 'prose-invert' : ''} prose-purple font-medium leading-relaxed`}>
+                                    <div className={`prose max-w-none ${isDark ? 'text-gray-300' : 'text-gray-700'}
+                                        [&>p]:mb-6 [&>p]:leading-relaxed 
+                                        [&>h1]:text-3xl [&>h1]:font-black [&>h1]:mb-6 [&>h1]:mt-8 [&>h1]:text-[#6C5DD3]
+                                        [&>h2]:text-2xl [&>h2]:font-bold [&>h2]:mb-4 [&>h2]:mt-8 [&>h2]:text-[#6C5DD3]
+                                        [&>h3]:text-xl [&>h3]:font-bold [&>h3]:mb-3 [&>h3]:mt-6 
+                                        [&>ul]:list-disc [&>ul]:ml-6 [&>ul]:mb-6 [&>ul>li]:mb-2
+                                        [&>ol]:list-decimal [&>ol]:ml-6 [&>ol]:mb-6 [&>ol>li]:mb-2
+                                        [&_strong]:font-bold ${isDark ? '[&_strong]:text-white' : '[&_strong]:text-black'}
+                                        font-medium leading-relaxed`}>
                                         <ReactMarkdown>{script}</ReactMarkdown>
                                     </div>
                                 </div>
                             </div>
                         ) : null}
+
+                        {/* Hidden PDF container */}
+                        <div className="absolute top-0 left-[-9999px] hidden">
+                            <div ref={contentRef} className="w-[800px] p-12 bg-white text-gray-800 font-sans">
+                                {/* Logo (placeholder via next/image or standard img) */}
+                                <div className="flex justify-center mb-10 border-b pb-8 border-gray-200">
+                                    <img src="/logo-original-si.png" alt="Logo" className="h-14 object-contain" />
+                                </div>
+                                
+                                {/* Content formatting for PDF specifically */}
+                                <div className="prose max-w-none text-gray-800
+                                    [&>p]:mb-6 [&>p]:leading-relaxed [&>p]:text-base
+                                    [&>h1]:text-3xl [&>h1]:font-black [&>h1]:mb-6 [&>h1]:mt-8 [&>h1]:text-[#6C5DD3]
+                                    [&>h2]:text-2xl [&>h2]:font-bold [&>h2]:mb-4 [&>h2]:mt-8 [&>h2]:text-[#6C5DD3]
+                                    [&>h3]:text-xl [&>h3]:font-bold [&>h3]:mb-3 [&>h3]:mt-6 
+                                    [&>ul]:list-disc [&>ul]:ml-6 [&>ul]:mb-6 [&>ul>li]:mb-2
+                                    [&>ol]:list-decimal [&>ol]:ml-6 [&>ol]:mb-6 [&>ol>li]:mb-2
+                                    [&_strong]:font-bold [&_strong]:text-black">
+                                    <ReactMarkdown>{script}</ReactMarkdown>
+                                </div>
+                                
+                                {/* Footer Credits */}
+                                <div className="mt-16 pt-8 border-t border-gray-200 text-center text-sm font-medium text-gray-500">
+                                    Roteiro gerado pelo App Profissão do Futuro.
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 )}
             </main>

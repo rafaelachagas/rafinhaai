@@ -157,10 +157,10 @@ export default function RoteiroPage() {
         try {
             const html2pdf = (await import('html2pdf.js')).default;
             const element = contentRef.current;
-            element.classList.remove('hidden');
+            element.parentElement.classList.remove('h-0', 'w-0', 'overflow-hidden');
             
             const opt = {
-                margin:       [20, 20, 20, 20],
+                margin: 15,
                 filename:     'Roteiro_Gerado_IA.pdf',
                 image:        { type: 'jpeg' as const, quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true, letterRendering: true, windowWidth: 800 },
@@ -168,7 +168,7 @@ export default function RoteiroPage() {
             };
             
             await html2pdf().set(opt).from(element).save();
-            element.classList.add('hidden');
+            element.parentElement.classList.add('h-0', 'w-0', 'overflow-hidden');
         } catch (error) {
             console.error('Erro ao gerar PDF', error);
         } finally {
@@ -429,16 +429,16 @@ export default function RoteiroPage() {
                         ) : null}
 
                         {/* Hidden PDF container */}
-                        <div className="absolute top-0 left-[-9999px] hidden">
-                            <div ref={contentRef} className="w-[700px] bg-[#ffffff] text-[#1f2937] font-sans break-words pb-8">
-                                {/* Logo (placeholder via next/image or standard img) */}
-                                <div className="flex justify-center mb-8 border-b pb-6 border-[#e5e7eb]">
-                                    <img src="/logo-original-si.png" alt="Logo" className="h-10 object-contain" />
+                                                {/* Hidden PDF container */}
+                        <div className="absolute h-0 w-0 overflow-hidden">
+                            <div ref={contentRef} style={{ width: '800px', padding: '40px', backgroundColor: '#ffffff', color: '#1f2937' }} className="font-sans break-words">
+                                {/* Logo */}
+                                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '32px', borderBottom: '1px solid #e5e7eb', paddingBottom: '24px' }}>
+                                    <img src="/logo-original-si.png" alt="Logo" style={{ height: '56px', objectFit: 'contain' }} />
                                 </div>
-                                
-                                {/* Content formatting for PDF specifically */}
+                                {/* Content */}
                                 <div className="text-[#1f2937] text-sm
-                                    [&_p]:mb-4 [&_p]:leading-normal
+                                    [&_p]:mb-4 [&_p]:leading-relaxed
                                     [&_h1]:text-2xl [&_h1]:font-black [&_h1]:mb-4 [&_h1]:mt-6 [&_h1]:text-[#6C5DD3]
                                     [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:mt-6 [&_h2]:text-[#6C5DD3]
                                     [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mb-2 [&_h3]:mt-4 [&_h3]:text-[#6C5DD3]
@@ -448,10 +448,9 @@ export default function RoteiroPage() {
                                     [&_hr]:my-6 [&_hr]:border-[#e5e7eb]">
                                     <ReactMarkdown>{script}</ReactMarkdown>
                                 </div>
-                                
-                                {/* Footer Credits */}
-                                <div className="mt-12 pt-6 border-t border-[#e5e7eb] text-center text-xs font-medium text-[#6b7280]">
-                                    Roteiro gerado pelo App Profissão do Futuro.
+                                {/* Footer */}
+                                <div style={{ marginTop: '48px', paddingTop: '24px', borderTop: '1px solid #e5e7eb', textAlign: 'center', fontSize: '12px', fontWeight: '500', color: '#6b7280' }}>
+                                    Roteiro gerada pelo App Profissão do Futuro.
                                 </div>
                             </div>
                         </div>

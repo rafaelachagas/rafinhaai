@@ -116,7 +116,7 @@ export default function BioPage() {
                 margin:       [10, 0, 10, 0] as [number, number, number, number],
                 filename:     'Bio_Gerada_IA.pdf',
                 image:        { type: 'jpeg' as const, quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true, windowWidth: 650, letterRendering: true },
+                html2canvas:  { scale: 2, useCORS: true, windowWidth: 794, letterRendering: true },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
                 pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
             };
@@ -257,7 +257,7 @@ export default function BioPage() {
                         ) : null}
                         {/* Hidden PDF container */}
                         <div style={{ display: 'none', position: 'absolute', top: '-9999px', left: '-9999px' }}>
-                            <div ref={contentRef} style={{ width: '650px', backgroundColor: '#ffffff', color: '#1f2937', padding: '40px', boxSizing: 'border-box' }} className="font-sans">
+                            <div ref={contentRef} style={{ width: '794px', backgroundColor: '#ffffff', color: '#1f2937', padding: '30px 40px', boxSizing: 'border-box' }} className="font-sans">
                                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '30px', borderBottom: '2px solid #f3f4f6', paddingBottom: '20px' }}>
                                     <img src="/logo-original-si.png" alt="Logo" style={{ height: '50px', objectFit: 'contain' }} />
                                 </div>

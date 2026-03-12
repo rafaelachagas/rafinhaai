@@ -160,7 +160,7 @@ export default function RoteiroPage() {
             if (element.parentElement) element.parentElement.style.display = 'block';
             
             const opt = {
-                margin:       [10, 10, 10, 10] as [number, number, number, number],
+                margin:       [10, 0, 10, 0] as [number, number, number, number],
                 filename:     'Roteiro_Gerado_IA.pdf',
                 image:        { type: 'jpeg' as const, quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true, windowWidth: 650, letterRendering: true },

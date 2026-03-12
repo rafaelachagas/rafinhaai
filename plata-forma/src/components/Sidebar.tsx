@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import {
     Sparkles, LayoutDashboard, Mail, BookOpen, PenTool,
-    Users, Shield, Settings, LogOut, BarChart3, ArrowLeft, CheckSquare, ChevronRight, ChevronLeft, PlayCircle
+    Users, Shield, Settings, Settings2, LogOut, BarChart3, ArrowLeft, CheckSquare, ChevronRight, ChevronLeft, PlayCircle
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { useTheme } from '@/context/ThemeContext';
@@ -111,6 +111,7 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
                                     <NavItem icon={<BarChart3 size={24} />} label="CRM" href="/dashboard/admin/crm" active={pathname.startsWith('/dashboard/admin/crm')} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} onClick={() => setIsMobileOpen(false)} />
                                     <NavItem icon={<BookOpen size={24} />} label="Cursos" href="/dashboard/admin/courses" active={pathname === '/dashboard/admin/courses'} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} onClick={() => setIsMobileOpen(false)} />
                                     <NavItem icon={<Mail size={24} />} label="Avisos/Mensagens" href="/dashboard/admin/messages" active={pathname === '/dashboard/admin/messages'} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} onClick={() => setIsMobileOpen(false)} />
+                                    <NavItem icon={<Settings2 size={24} />} label="Config. Plataforma" href="/dashboard/admin/settings" active={pathname === '/dashboard/admin/settings'} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} onClick={() => setIsMobileOpen(false)} />
                                 </>
                             ) : (
                                 <>
@@ -133,9 +134,6 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
                             )}
                             {isAdminRoute && (
                                 <NavItem icon={<ArrowLeft size={24} />} label="Visão do Aluno" href="/dashboard" active={false} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} onClick={() => setIsMobileOpen(false)} />
-                            )}
-                            {isAdminRoute && (
-                                <NavItem icon={<Settings size={24} />} label="Config. Plataforma" href="/dashboard/admin/settings" active={pathname === '/dashboard/admin/settings'} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} onClick={() => setIsMobileOpen(false)} />
                             )}
                             <NavItem icon={<Settings size={24} />} label="Ajustes" href="/dashboard/settings" active={pathname === '/dashboard/settings'} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} onClick={() => setIsMobileOpen(false)} />
                             <button onClick={handleLogout} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-medium ${forcedDark ? 'text-gray-400 hover:bg-white/5 hover:text-white' : 'text-gray-500 hover:bg-red-50 hover:text-red-500'}`}>
@@ -229,6 +227,7 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
                                             <NavItem icon={<BarChart3 size={24} />} label="CRM" href="/dashboard/admin/crm" active={pathname.startsWith('/dashboard/admin/crm')} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} isCollapsed={isCollapsed} />
                                             <NavItem icon={<BookOpen size={24} />} label="Cursos" href="/dashboard/admin/courses" active={pathname === '/dashboard/admin/courses'} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} isCollapsed={isCollapsed} />
                                             <NavItem icon={<Mail size={24} />} label="Avisos/Mensagens" href="/dashboard/admin/messages" active={pathname === '/dashboard/admin/messages'} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} isCollapsed={isCollapsed} />
+                                            <NavItem icon={<Settings2 size={24} />} label="Config. Plataforma" href="/dashboard/admin/settings" active={pathname === '/dashboard/admin/settings'} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} isCollapsed={isCollapsed} />
                                         </>
                                     ) : (
                                         <>
@@ -269,9 +268,6 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
                                             isDark={forcedDark}
                                             isCollapsed={isCollapsed}
                                         />
-                                    )}
-                                    {isAdminRoute && (
-                                        <NavItem icon={<Settings size={24} />} label="Config. Plataforma" href="/dashboard/admin/settings" active={pathname === '/dashboard/admin/settings'} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} isCollapsed={isCollapsed} />
                                     )}
                                     <NavItem icon={<Settings size={24} />} label="Ajustes" href="/dashboard/settings" active={pathname === '/dashboard/settings'} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} isCollapsed={isCollapsed} />
                                     <button onClick={handleLogout} className={`w-full flex items-center ${isCollapsed ? 'justify-center px-3 py-4' : 'gap-3 px-4 py-3'} rounded-xl transition-all text-sm font-medium ${forcedDark ? 'text-gray-400 hover:bg-white/5 hover:text-white' : 'text-gray-500 hover:bg-red-50 hover:text-red-500'}`} title={isCollapsed ? 'Sair' : ''}>

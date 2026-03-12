@@ -134,6 +134,9 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
                             {isAdminRoute && (
                                 <NavItem icon={<ArrowLeft size={24} />} label="Visão do Aluno" href="/dashboard" active={false} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} onClick={() => setIsMobileOpen(false)} />
                             )}
+                            {isAdminRoute && (
+                                <NavItem icon={<Settings size={24} />} label="Config. Plataforma" href="/dashboard/admin/settings" active={pathname === '/dashboard/admin/settings'} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} onClick={() => setIsMobileOpen(false)} />
+                            )}
                             <NavItem icon={<Settings size={24} />} label="Ajustes" href="/dashboard/settings" active={pathname === '/dashboard/settings'} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} onClick={() => setIsMobileOpen(false)} />
                             <button onClick={handleLogout} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-medium ${forcedDark ? 'text-gray-400 hover:bg-white/5 hover:text-white' : 'text-gray-500 hover:bg-red-50 hover:text-red-500'}`}>
                                 <LogOut size={24} />
@@ -266,6 +269,9 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
                                             isDark={forcedDark}
                                             isCollapsed={isCollapsed}
                                         />
+                                    )}
+                                    {isAdminRoute && (
+                                        <NavItem icon={<Settings size={24} />} label="Config. Plataforma" href="/dashboard/admin/settings" active={pathname === '/dashboard/admin/settings'} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} isCollapsed={isCollapsed} />
                                     )}
                                     <NavItem icon={<Settings size={24} />} label="Ajustes" href="/dashboard/settings" active={pathname === '/dashboard/settings'} accentColor={accentColor} accentShadow={accentShadow} isDark={forcedDark} isCollapsed={isCollapsed} />
                                     <button onClick={handleLogout} className={`w-full flex items-center ${isCollapsed ? 'justify-center px-3 py-4' : 'gap-3 px-4 py-3'} rounded-xl transition-all text-sm font-medium ${forcedDark ? 'text-gray-400 hover:bg-white/5 hover:text-white' : 'text-gray-500 hover:bg-red-50 hover:text-red-500'}`} title={isCollapsed ? 'Sair' : ''}>

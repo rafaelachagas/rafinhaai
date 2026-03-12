@@ -46,6 +46,10 @@ export default function RoteiroPage() {
     const [history, setHistory] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
+    const [pdfSettings, setPdfSettings] = useState({
+        logo: '/logo-original-si.png',
+        footer: 'Roteiro gerado pelo App Profissão do Futuro.'
+    });
 
     useEffect(() => {
         if (!themeLoading) {
@@ -61,6 +65,21 @@ export default function RoteiroPage() {
             }
         }
     }, [profile, themeLoading, router]);
+
+    const fetchSettings = async () => {
+        try {
+            const { data } = await supabase.from('platform_settings').select('value').eq('key', 'pdf_settings').single();
+            if (data?.value) {
+                const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+                setPdfSettings({
+                    logo: parsed.logo_url !== undefined ? parsed.logo_url : '/logo-original-si.png',
+                    footer: parsed.footer_roteiro || 'Roteiro gerado pelo App Profissão do Futuro.'
+                });
+            }
+        } catch (e) {
+            // Settings not initialized yet
+        }
+    };
 
     async function fetchUnreadCount() {
         if (!profile?.id) return;
@@ -433,7 +452,11 @@ export default function RoteiroPage() {
                         <div style={{ display: 'none', position: 'absolute', top: '-9999px', left: '-9999px' }}>
                             <div ref={contentRef} style={{ width: '794px', backgroundColor: '#ffffff', color: '#1f2937', padding: '30px 40px', boxSizing: 'border-box' }} className="font-sans">
                                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '30px', borderBottom: '2px solid #f3f4f6', paddingBottom: '20px' }}>
-                                    <img src="/logo-original-si.png" alt="Logo" style={{ height: '50px', objectFit: 'contain' }} />
+                                    {pdfSettings.logo ? (
+                                        <img src={pdfSettings.logo} alt="Logo" style={{ height: '50px', objectFit: 'contain' }} />
+                                    ) : (
+                                        <div style={{ height: '50px' }}></div>
+                                    )}
                                 </div>
                                 <div style={{ width: '100%', textAlign: 'left' }}>
                                     <div style={{ color: '#1f2937', fontSize: '13px', lineHeight: '1.7', wordBreak: 'break-word' }}>
@@ -454,7 +477,7 @@ export default function RoteiroPage() {
                                     </div>
                                 </div>
                                 <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #e5e7eb', textAlign: 'center', fontSize: '11px', fontWeight: '600', color: '#9ca3af' }}>
-                                    Roteiro gerado pelo App Profissão do Futuro.
+                                    {pdfSettings.footer}
                                 </div>
                             </div>
                         </div>

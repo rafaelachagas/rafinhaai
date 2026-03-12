@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import {
+    Settings,
     Users,
     TrendingUp,
     Activity,
@@ -170,8 +171,9 @@ export default function AdminDashboard() {
                         <button className="px-8 py-4 bg-white text-[#FF754C] rounded-2xl font-bold text-sm shadow-xl hover:scale-105 transition-all">
                             Novo Comunicado
                         </button>
-                        <button className="px-8 py-4 bg-white/10 text-white backdrop-blur-md border border-white/20 rounded-2xl font-bold text-sm hover:bg-white/20 transition-all">
-                            Logs do Sistema
+                        <button onClick={() => router.push('/dashboard/admin/settings')} className="px-8 py-4 bg-white/10 text-white backdrop-blur-md border border-white/20 rounded-2xl font-bold text-sm hover:bg-white/20 transition-all flex items-center gap-2">
+                            <Settings size={18} />
+                            Configurações
                         </button>
                     </div>
                 </div>

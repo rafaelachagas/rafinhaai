@@ -160,11 +160,12 @@ export default function RoteiroPage() {
             if (element.parentElement) element.parentElement.style.display = 'block';
             
             const opt = {
-                margin:       15,
+                margin:       [10, 10, 10, 10] as [number, number, number, number],
                 filename:     'Roteiro_Gerado_IA.pdf',
-                image:        { type: 'jpeg' as const, quality: 1 },
-                html2canvas:  { scale: 2, useCORS: true, windowWidth: 800, letterRendering: true },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
+                image:        { type: 'jpeg' as const, quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, windowWidth: 650, letterRendering: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
+                pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
             };
             
             await html2pdf().set(opt).from(element).save();
@@ -430,27 +431,29 @@ export default function RoteiroPage() {
 
                         {/* Hidden PDF container */}
                         <div style={{ display: 'none', position: 'absolute', top: '-9999px', left: '-9999px' }}>
-                            <div ref={contentRef} style={{ width: '750px', backgroundColor: '#ffffff', color: '#1f2937', padding: '60px', boxSizing: 'border-box', minHeight: '1000px' }} className="font-sans">
-                                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '40px', borderBottom: '2px solid #f3f4f6', paddingBottom: '30px' }}>
-                                    <img src="/logo-original-si.png" alt="Logo" style={{ height: '60px', objectFit: 'contain' }} />
+                            <div ref={contentRef} style={{ width: '650px', backgroundColor: '#ffffff', color: '#1f2937', padding: '40px', boxSizing: 'border-box' }} className="font-sans">
+                                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '30px', borderBottom: '2px solid #f3f4f6', paddingBottom: '20px' }}>
+                                    <img src="/logo-original-si.png" alt="Logo" style={{ height: '50px', objectFit: 'contain' }} />
                                 </div>
                                 <div style={{ width: '100%', textAlign: 'left' }}>
-                                    <div className="text-[#1f2937] text-[14px]" style={{ lineHeight: '1.6', wordBreak: 'break-word' }}>
+                                    <div style={{ color: '#1f2937', fontSize: '13px', lineHeight: '1.7', wordBreak: 'break-word' }}>
                                         <div className="
-                                            [&_p]:mb-4 [&_p]:leading-relaxed
-                                            [&_h1]:text-2xl [&_h1]:font-black [&_h1]:mb-6 [&_h1]:mt-8 [&_h1]:text-[#6C5DD3]
-                                            [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-4 [&_h2]:mt-6 [&_h2]:text-[#6C5DD3]
-                                            [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mb-3 [&_h3]:mt-4 [&_h3]:text-[#6C5DD3]
-                                            [&_ul]:list-disc [&_ul]:ml-6 [&_ul]:mb-4 [&_ul_li]:mb-2
-                                            [&_ol]:list-decimal [&_ol]:ml-6 [&_ol]:mb-4 [&_ol_li]:mb-2
+                                            [&_p]:mb-3 [&_p]:leading-relaxed
+                                            [&_h1]:text-xl [&_h1]:font-black [&_h1]:mb-4 [&_h1]:mt-6 [&_h1]:text-[#6C5DD3]
+                                            [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:mt-5 [&_h2]:text-[#6C5DD3]
+                                            [&_h3]:text-base [&_h3]:font-bold [&_h3]:mb-2 [&_h3]:mt-4 [&_h3]:text-[#6C5DD3]
+                                            [&_ul]:list-disc [&_ul]:ml-5 [&_ul]:mb-3 [&_ul_li]:mb-1
+                                            [&_ol]:list-decimal [&_ol]:ml-5 [&_ol]:mb-3 [&_ol_li]:mb-1
                                             [&_strong]:font-bold [&_strong]:text-[#000000]
-                                            [&_hr]:my-8 [&_hr]:border-[#e5e7eb]
+                                            [&_hr]:my-6 [&_hr]:border-[#e5e7eb]
+                                            [&_h1]:break-after-avoid [&_h2]:break-after-avoid [&_h3]:break-after-avoid
+                                            [&_li]:break-inside-avoid
                                         ">
                                             <ReactMarkdown>{script}</ReactMarkdown>
                                         </div>
                                     </div>
                                 </div>
-                                <div style={{ marginTop: '60px', paddingTop: '30px', borderTop: '2px solid #f3f4f6', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#9ca3af' }}>
+                                <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #e5e7eb', textAlign: 'center', fontSize: '11px', fontWeight: '600', color: '#9ca3af' }}>
                                     Roteiro gerado pelo App Profissão do Futuro.
                                 </div>
                             </div>

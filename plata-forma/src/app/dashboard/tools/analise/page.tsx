@@ -253,15 +253,12 @@ export default function AnalisePage() {
                                 </div>
                             </div>
                         ) : null}
-                                                {/* Hidden PDF container */}
+                                        {/* Hidden PDF container */}
                         <div style={{ display: 'none', position: 'absolute', top: '-9999px', left: '-9999px' }}>
                             <div ref={contentRef} style={{ width: '750px', backgroundColor: '#ffffff', color: '#1f2937', padding: '60px', boxSizing: 'border-box', minHeight: '1000px' }} className="font-sans">
-                                {/* Logo */}
                                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '40px', borderBottom: '2px solid #f3f4f6', paddingBottom: '30px' }}>
                                     <img src="/logo-original-si.png" alt="Logo" style={{ height: '60px', objectFit: 'contain' }} />
                                 </div>
-                                
-                                {/* Content Wrapper for Alignment */}
                                 <div style={{ width: '100%', textAlign: 'left' }}>
                                     <div className="text-[#1f2937] text-[14px]" style={{ lineHeight: '1.6', wordBreak: 'break-word' }}>
                                         <div className="
@@ -278,27 +275,11 @@ export default function AnalisePage() {
                                         </div>
                                     </div>
                                 </div>
-                                
-                                {/* Footer */}
-                                <div style={{ marginTop: '80px', paddingTop: '30px', borderTop: '1px solid #f3f4f6', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#9ca3af' }}>
+                                <div style={{ marginTop: '60px', paddingTop: '30px', borderTop: '2px solid #f3f4f6', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#9ca3af' }}>
                                     Análise gerada pelo App Profissão do Futuro.
                                 </div>
                             </div>
-                        </div>
-                                
-                                {/* Footer */}
-                                <div style={{ marginTop: '60px', paddingTop: '30px', borderTop: '2px solid #f3f4f6', textAlign: 'center', fontSize: '13px', fontWeight: '600', color: '#9ca3af' }}>
-                                    Análise gerado pelo App Profissão do Futuro.
-                                </div>
-                            </div>
-                        </div>
-                                
-                                {/* Footer */}
-                                <div style={{ marginTop: '48px', paddingTop: '24px', borderTop: '1px solid #e5e7eb', textAlign: 'center', fontSize: '12px', fontWeight: '500', color: '#6b7280' }}>
-                                    Análise gerada pelo App Profissão do Futuro.
-                                </div>
-                            </div>
-                        </div>
+                        </div></div>
                 ) : (
 /* ===== INPUT FORM ===== */
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

@@ -279,7 +279,7 @@ export default function AnalisePage() {
                             <div ref={contentRef} style={{ width: '794px', backgroundColor: '#ffffff', color: '#1f2937', padding: '30px 40px', boxSizing: 'border-box' }} className="font-sans">
                                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '30px', borderBottom: '2px solid #f3f4f6', paddingBottom: '20px' }}>
                                     {pdfSettings.logo ? (
-                                        <img src={pdfSettings.logo} alt="Logo" style={{ height: '50px', objectFit: 'contain' }} />
+                                        <img src={pdfSettings.logo} crossOrigin="anonymous" alt="Logo" style={{ height: '50px', objectFit: 'contain' }} />
                                     ) : (
                                         <div style={{ height: '50px' }}></div>
                                     )}

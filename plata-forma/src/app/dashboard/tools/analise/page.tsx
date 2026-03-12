@@ -255,34 +255,50 @@ export default function AnalisePage() {
                         ) : null}
                                                 {/* Hidden PDF container */}
                         <div style={{ display: 'none', position: 'absolute', top: '-9999px', left: '-9999px' }}>
-                            <div ref={contentRef} style={{ width: '800px', backgroundColor: '#ffffff', color: '#1f2937', padding: '40px', boxSizing: 'border-box' }} className="font-sans">
+                            <div ref={contentRef} style={{ width: '750px', backgroundColor: '#ffffff', color: '#1f2937', padding: '60px', boxSizing: 'border-box', minHeight: '1000px' }} className="font-sans">
                                 {/* Logo */}
-                                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '32px', borderBottom: '1px solid #e5e7eb', paddingBottom: '24px' }}>
-                                    <img src="/logo-original-si.png" alt="Logo" style={{ height: '56px', objectFit: 'contain' }} />
+                                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '40px', borderBottom: '2px solid #f3f4f6', paddingBottom: '30px' }}>
+                                    <img src="/logo-original-si.png" alt="Logo" style={{ height: '60px', objectFit: 'contain' }} />
                                 </div>
                                 
-                                {/* Content */}
-                                <div className="text-[#1f2937] text-sm" style={{ width: '100%', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
-                                    <div className="
-                                        [&_p]:mb-4 [&_p]:leading-relaxed
-                                        [&_h1]:text-2xl [&_h1]:font-black [&_h1]:mb-4 [&_h1]:mt-6 [&_h1]:text-[#FF754C]
-                                        [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:mt-6 [&_h2]:text-[#FF754C]
-                                        [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mb-2 [&_h3]:mt-4 [&_h3]:text-[#FF754C]
-                                        [&_ul]:list-disc [&_ul]:ml-5 [&_ul]:mb-4 [&_ul_li]:mb-1
-                                        [&_ol]:list-decimal [&_ol]:ml-5 [&_ol]:mb-4 [&_ol_li]:mb-1
-                                        [&_strong]:font-bold [&_strong]:text-[#000000]
-                                        [&_hr]:my-6 [&_hr]:border-[#e5e7eb]
-                                    ">
-                                        <ReactMarkdown>{analise}</ReactMarkdown>
+                                {/* Content Wrapper for Alignment */}
+                                <div style={{ width: '100%', textAlign: 'left' }}>
+                                    <div className="text-[#1f2937] text-[14px]" style={{ lineHeight: '1.6', wordBreak: 'break-word' }}>
+                                        <div className="
+                                            [&_p]:mb-4 [&_p]:leading-relaxed
+                                            [&_h1]:text-2xl [&_h1]:font-black [&_h1]:mb-6 [&_h1]:mt-8 [&_h1]:text-[#FF754C]
+                                            [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-4 [&_h2]:mt-6 [&_h2]:text-[#FF754C]
+                                            [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mb-3 [&_h3]:mt-4 [&_h3]:text-[#FF754C]
+                                            [&_ul]:list-disc [&_ul]:ml-6 [&_ul]:mb-4 [&_ul_li]:mb-2
+                                            [&_ol]:list-decimal [&_ol]:ml-6 [&_ol]:mb-4 [&_ol_li]:mb-2
+                                            [&_strong]:font-bold [&_strong]:text-[#000000]
+                                            [&_hr]:my-8 [&_hr]:border-[#e5e7eb]
+                                        ">
+                                            <ReactMarkdown>{analise}</ReactMarkdown>
+                                        </div>
                                     </div>
                                 </div>
+                                
+                                {/* Footer */}
+                                <div style={{ marginTop: '80px', paddingTop: '30px', borderTop: '1px solid #f3f4f6', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#9ca3af' }}>
+                                    Análise gerada pelo App Profissão do Futuro.
+                                </div>
+                            </div>
+                        </div>
+                                
+                                {/* Footer */}
+                                <div style={{ marginTop: '60px', paddingTop: '30px', borderTop: '2px solid #f3f4f6', textAlign: 'center', fontSize: '13px', fontWeight: '600', color: '#9ca3af' }}>
+                                    Análise gerado pelo App Profissão do Futuro.
+                                </div>
+                            </div>
+                        </div>
                                 
                                 {/* Footer */}
                                 <div style={{ marginTop: '48px', paddingTop: '24px', borderTop: '1px solid #e5e7eb', textAlign: 'center', fontSize: '12px', fontWeight: '500', color: '#6b7280' }}>
                                     Análise gerada pelo App Profissão do Futuro.
                                 </div>
                             </div>
-                        </div></div>
+                        </div>
                 ) : (
 /* ===== INPUT FORM ===== */
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

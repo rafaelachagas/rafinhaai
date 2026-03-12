@@ -11,7 +11,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Conversa vazia.' }, { status: 400 });
         }
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
 
         const systemPrompt = `
 Você é um simulador de negociação chamado Rafinha.AI. Você vai interpretar o papel de um CLIENTE DIFÍCIL que está interessado em comprar mas tem muitas objeções.
@@ -67,6 +67,7 @@ Se o vendedor mandar "gibberish" absoluto (ex: "asasddsadas", "mqwjehflje"), pal
 
         return NextResponse.json({ reply: text });
     } catch (error) {
+        console.error('AI Route Error Detail:', error);
         console.error('AI Negociação Error:', error);
         return NextResponse.json({ error: 'Falha na simulação de negociação.' }, { status: 500 });
     }

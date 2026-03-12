@@ -11,7 +11,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Cole seu roteiro para análise.' }, { status: 400 });
         }
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
 
         const fullPrompt = `
 Você é um analista de conteúdo digital de elite chamado Rafinha.AI. Você analisa roteiros de vídeos com um olhar crítico e construtivo, focando em performance, retenção e conversão.
@@ -83,6 +83,7 @@ ${objetivo ? `**Objetivo do vídeo:** ${objetivo}` : ''}
 
         return NextResponse.json({ analise: text });
     } catch (error) {
+        console.error('AI Route Error Detail:', error);
         console.error('AI Análise Error:', error);
         return NextResponse.json({ error: 'Falha ao analisar roteiro.' }, { status: 500 });
     }

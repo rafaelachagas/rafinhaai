@@ -11,7 +11,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
         }
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
 
         const fullPrompt = `
       Você é um especialista em marketing e criação de roteiros de alta conversão.
@@ -32,6 +32,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ script: text });
     } catch (error) {
+        console.error('AI Route Error Detail:', error);
         console.error('AI Error:', error);
         return NextResponse.json({ error: 'Falha ao gerar roteiro' }, { status: 500 });
     }

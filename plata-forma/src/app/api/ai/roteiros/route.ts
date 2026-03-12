@@ -12,7 +12,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Preencha todos os campos obrigatórios da triagem.' }, { status: 400 });
         }
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
 
         const fullPrompt = `
 Você é um roteirista e copywriter de elite, especialista em vendas digitais, influência e marketing de conteúdo. Seu nome é Rafinha.AI.
@@ -73,8 +73,8 @@ Gere o roteiro completo agora.
         const text = response.text();
 
         return NextResponse.json({ script: text });
-    } catch (error) {
+    } catch (error: any) {
         console.error('AI Roteiro Error:', error);
-        return NextResponse.json({ error: 'Falha ao gerar roteiro. Tente novamente.' }, { status: 500 });
+        return NextResponse.json({ error: 'Falha ao gerar roteiro.', details: error.message }, { status: 500 });
     }
 }

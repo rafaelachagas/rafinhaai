@@ -42,6 +42,7 @@ next-env.d.ts
 
 # scripts de teste/debug (NUNCA commitar - podem conter chaves)
 test_*.js
+test-*.js
 debug_*.js
 fix_*.js
 list_*.js
@@ -54,3 +55,4 @@ final_fix.js
 bump.js
 check*.js
 db-setup.js
+test-api.js

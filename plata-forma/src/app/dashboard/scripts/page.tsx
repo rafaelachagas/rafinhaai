@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 import { Sparkles, PenTool, Loader2, ArrowLeft, Copy, Check } from 'lucide-react';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
+import { LoadingPhrases } from '@/components/LoadingPhrases';
 
 import { useTheme } from '@/context/ThemeContext';
-
+import { authFetch } from '@/lib/auth-fetch';
 export default function ScriptsPage() {
     const { isDark } = useTheme();
     const [mounted, setMounted] = useState(false);
@@ -26,9 +27,8 @@ export default function ScriptsPage() {
         if (!prompt) return;
         setLoading(true);
         try {
-            const res = await fetch('/api/ai/scripts', {
+            const res = await authFetch('/api/ai/scripts', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ prompt, type }),
             });
             const data = await res.json();
@@ -153,7 +153,13 @@ export default function ScriptsPage() {
                                     </div>
                                     <div className="text-center space-y-2">
                                         <p className="text-lg font-black tracking-widest text-[#B42AF0] uppercase">Processando Dados</p>
-                                        <p className="text-sm text-gray-400 font-medium">Criando uma estrutura de alta conversão...</p>
+                                        <LoadingPhrases phrases={[
+                                            "Estruturando seu roteiro com padrões de alta conversão...",
+                                            "Aplicando gatilhos mentais e técnicas de retenção...",
+                                            "Ajustando as copys para prender a atenção em 3 segundos...",
+                                            "Inserindo Call-to-Actions que vendem de verdade...",
+                                            "Revisando toda a cadência e naturalidade do script..."
+                                        ]} />
                                     </div>
                                 </div>
                             )}
@@ -179,7 +185,9 @@ export default function ScriptsPage() {
                                         </div>
                                     </div>
 
-                                    <div className="prose prose-invert prose-purple max-w-none bg-[#050505]/40 p-8 rounded-[2rem] border border-white/5 font-medium leading-relaxed">
+                                    <div className="prose prose-invert prose-purple max-w-none bg-[#050505]/40 p-8 rounded-[2rem] border border-white/5 font-medium leading-relaxed
+                                        [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:bg-transparent [&_pre]:p-0
+                                        [&_code]:break-words [&_code]:whitespace-pre-wrap [&_code]:bg-transparent [&_code]:p-0">
                                         <ReactMarkdown>{script}</ReactMarkdown>
                                     </div>
                                 </div>

@@ -4,12 +4,14 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
 import { supabase } from '@/lib/supabase/client';
+import { authFetch } from '@/lib/auth-fetch';
 import { Header } from '@/components/Header';
 import {
     Sparkles, PenTool, Loader2, Copy, Check, ArrowLeft, ArrowRight,
     Target, Users, ShoppingBag, Monitor, Megaphone, MessageCircle, ChevronRight, Download, History, Plus
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { LoadingPhrases } from '@/components/LoadingPhrases';
 
 const STEPS = [
     { id: 'nicho', label: 'Nicho', icon: Target, question: 'Qual é o seu nicho de atuação?', placeholder: 'Ex: Marketing Digital, Fitness, Finanças, Beleza, Gastronomia...', type: 'text' },
@@ -47,7 +49,7 @@ export default function RoteiroPage() {
     const [loadingHistory, setLoadingHistory] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
     const [pdfSettings, setPdfSettings] = useState({
-        logo: '/logo-original-si.png',
+        logo: '',
         footer: 'Roteiro gerado pelo App Profissão do Futuro.'
     });
 
@@ -62,6 +64,7 @@ export default function RoteiroPage() {
             } else {
                 setLoading(false);
                 fetchUnreadCount();
+                fetchSettings();
             }
         }
     }, [profile, themeLoading, router]);
@@ -72,12 +75,12 @@ export default function RoteiroPage() {
             if (data?.value) {
                 const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
                 setPdfSettings({
-                    logo: parsed.logo_url !== undefined ? parsed.logo_url : '/logo-original-si.png',
+                    logo: parsed.logo_url !== undefined ? parsed.logo_url : '',
                     footer: parsed.footer_roteiro || 'Roteiro gerado pelo App Profissão do Futuro.'
                 });
             }
         } catch (e) {
-            // Settings not initialized yet
+            setPdfSettings(prev => ({ ...prev, logo: '' }));
         }
     };
 
@@ -128,9 +131,8 @@ export default function RoteiroPage() {
     const handleGenerate = async () => {
         setGenerating(true);
         try {
-            const res = await fetch('/api/ai/roteiros', {
+            const res = await authFetch('/api/ai/roteiros', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
             });
             const data = await res.json();
@@ -146,10 +148,12 @@ export default function RoteiroPage() {
                     }]);
                 }
             } else {
-                setScript('Erro ao gerar roteiro. Tente novamente.');
+                setScript(data.error || 'Erro ao gerar roteiro. Tente novamente. Se o problema persistir atualize a página.');
+                console.error('API Error:', data);
             }
-        } catch {
+        } catch (e) {
             setScript('Erro de conexão. Verifique sua internet e tente novamente.');
+            console.error('Fetch Error:', e);
         } finally {
             setGenerating(false);
         }
@@ -409,7 +413,13 @@ export default function RoteiroPage() {
                                 </div>
                                 <div className="text-center space-y-2">
                                     <p className="text-lg font-black tracking-widest text-[#6C5DD3] uppercase">Gerando seu Roteiro</p>
-                                    <p className="text-sm text-gray-400 font-medium">Analisando seu avatar, objetivo e plataforma...</p>
+                                    <LoadingPhrases phrases={[
+                                        "Buscando as maiores dores do seu avatar...",
+                                        "Analisando vídeos virais no seu nicho...",
+                                        "Criando um gancho impossível de ignorar...",
+                                        "Estruturando storytelling para retenção máxima...",
+                                        "Lapidando a CTA para estourar de conversão..."
+                                    ]} />
                                 </div>
                             </div>
                         ) : script ? (
@@ -441,6 +451,8 @@ export default function RoteiroPage() {
                                         [&>ul]:list-disc [&>ul]:ml-6 [&>ul]:mb-6 [&>ul>li]:mb-2
                                         [&>ol]:list-decimal [&>ol]:ml-6 [&>ol]:mb-6 [&>ol>li]:mb-2
                                         [&_strong]:font-bold ${isDark ? '[&_strong]:text-white' : '[&_strong]:text-black'}
+                                        [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:bg-transparent [&_pre]:p-0
+                                        [&_code]:break-words [&_code]:whitespace-pre-wrap [&_code]:bg-transparent [&_code]:p-0
                                         font-medium leading-relaxed`}>
                                         <ReactMarkdown>{script}</ReactMarkdown>
                                     </div>
@@ -471,6 +483,8 @@ export default function RoteiroPage() {
                                             [&_hr]:my-6 [&_hr]:border-[#e5e7eb]
                                             [&_h1]:break-after-avoid [&_h2]:break-after-avoid [&_h3]:break-after-avoid
                                             [&_li]:break-inside-avoid
+                                            [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:bg-transparent [&_pre]:p-0
+                                            [&_code]:break-words [&_code]:whitespace-pre-wrap [&_code]:bg-transparent [&_code]:p-0
                                         ">
                                             <ReactMarkdown>{script}</ReactMarkdown>
                                         </div>

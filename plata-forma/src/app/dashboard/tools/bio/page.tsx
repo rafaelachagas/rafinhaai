@@ -4,11 +4,13 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
 import { supabase } from '@/lib/supabase/client';
+import { authFetch } from '@/lib/auth-fetch';
 import { Header } from '@/components/Header';
 import {
     Sparkles, Loader2, Copy, Check, ArrowLeft, Instagram, AtSign, RotateCcw, Download, History, Plus
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { LoadingPhrases } from '@/components/LoadingPhrases';
 
 export default function BioPage() {
     const router = useRouter();
@@ -31,7 +33,7 @@ export default function BioPage() {
     const [downloadingPDF, setDownloadingPDF] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
     const [pdfSettings, setPdfSettings] = useState({
-        logo: '/logo-original-si.png',
+        logo: '',
         footer: 'Bio gerada pelo App Profissão do Futuro.'
     });
 
@@ -57,12 +59,12 @@ export default function BioPage() {
             if (data?.value) {
                 const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
                 setPdfSettings({
-                    logo: parsed.logo_url !== undefined ? parsed.logo_url : '/logo-original-si.png',
+                    logo: parsed.logo_url !== undefined ? parsed.logo_url : '',
                     footer: parsed.footer_bio || 'Bio gerada pelo App Profissão do Futuro.'
                 });
             }
         } catch (e) {
-            // Settings not initialized yet
+            setPdfSettings(prev => ({ ...prev, logo: '' }));
         }
     };
 
@@ -97,9 +99,8 @@ export default function BioPage() {
         if (!formData.nicho || !formData.publicoAlvo) return;
         setGenerating(true);
         try {
-            const res = await fetch('/api/ai/bio', {
+            const res = await authFetch('/api/ai/bio', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
             });
             const data = await res.json();
@@ -238,7 +239,13 @@ export default function BioPage() {
                                 </div>
                                 <div className="text-center space-y-2">
                                     <p className="text-lg font-black tracking-widest text-[#E1306C] uppercase">Gerando suas Bios</p>
-                                    <p className="text-sm text-gray-400 font-medium">Buscando palavras-chave e otimizando perfis...</p>
+                                    <LoadingPhrases phrases={[
+                                        "Mapeando o posicionamento das contas no seu nicho...",
+                                        "Destacando suas maiores conquistas...",
+                                        "Desenhando o seu diferencial competitivo único...",
+                                        "Criando Call-to-Actions que geram cliques...",
+                                        "Lapidando as palavras para autoridade máxima..."
+                                    ]} />
                                 </div>
                             </div>
                         ) : bios ? (
@@ -269,6 +276,8 @@ export default function BioPage() {
                                         [&>ul]:list-disc [&>ul]:ml-6 [&>ul]:mb-6 [&>ul>li]:mb-2
                                         [&>ol]:list-decimal [&>ol]:ml-6 [&>ol]:mb-6 [&>ol>li]:mb-2
                                         [&_strong]:font-bold ${isDark ? '[&_strong]:text-white' : '[&_strong]:text-black'}
+                                        [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:bg-transparent [&_pre]:p-0
+                                        [&_code]:break-words [&_code]:whitespace-pre-wrap [&_code]:bg-transparent [&_code]:p-0
                                         font-medium leading-relaxed`}>
                                         <ReactMarkdown>{bios}</ReactMarkdown>
                                     </div>
@@ -298,6 +307,8 @@ export default function BioPage() {
                                             [&_hr]:my-6 [&_hr]:border-[#e5e7eb]
                                             [&_h1]:break-after-avoid [&_h2]:break-after-avoid [&_h3]:break-after-avoid
                                             [&_li]:break-inside-avoid
+                                            [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:bg-transparent [&_pre]:p-0
+                                            [&_code]:break-words [&_code]:whitespace-pre-wrap [&_code]:bg-transparent [&_code]:p-0
                                         ">
                                             <ReactMarkdown>{bios}</ReactMarkdown>
                                         </div>

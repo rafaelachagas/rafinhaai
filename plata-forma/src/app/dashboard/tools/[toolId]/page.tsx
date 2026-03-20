@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
 import { supabase } from '@/lib/supabase/client';
+import { authFetch } from '@/lib/auth-fetch';
 import { Header } from '@/components/Header';
 import {
     ArrowLeft, Sparkles, Loader2, Copy, Check, Search, Briefcase, UserCheck,
@@ -11,11 +12,12 @@ import {
     Send, RotateCcw, Upload, Image as ImageIcon, X
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { LoadingPhrases } from '@/components/LoadingPhrases';
 
 interface FieldConfig {
     id: string;
     label: string;
-    type: 'text' | 'textarea' | 'select' | 'image';
+    type: 'text' | 'textarea' | 'select' | 'image' | 'images';
     placeholder?: string;
     required?: boolean;
     options?: string[];
@@ -44,9 +46,8 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
         badgeText: 'BIO & PORTFÓLIO',
         categoryLabel: 'Análise de Portfólio',
         fields: [
-            { id: 'imagem', label: 'Faça upload do seu portfólio (Tire um print da tela inteira ou da melhor seção)', type: 'image' },
-            { id: 'portfolio', label: 'Ou, se preferir descrever / colar o link:', type: 'textarea', placeholder: 'Cole o link do seu portfólio, ou descreva o que você tem nele: tipos de vídeo, marcas que trabalhou...' },
-            { id: 'nicho', label: 'Qual seu nicho?', type: 'text', placeholder: 'Ex: Beleza, Fitness, Tech, Gastronomia...', required: true },
+            { id: 'imagens', label: 'Faça upload do seu portfólio (Tire prints da tela inteira ou das melhores seções)', type: 'images', required: true },
+            { id: 'nicho', label: 'Qual seu nicho? *', type: 'text', placeholder: 'Ex: Beleza, Fitness, Tech, Gastronomia...', required: true },
             { id: 'objetivo', label: 'O que você quer alcançar com o portfólio?', type: 'text', placeholder: 'Ex: Atrair marcas de skincare, conseguir campanhas maiores...' },
         ],
     },
@@ -236,7 +237,7 @@ export default function DynamicToolPage() {
     const [recentMessages, setRecentMessages] = useState<any[]>([]);
     const [notificationsOpen, setNotificationsOpen] = useState(false);
 
-    const [formData, setFormData] = useState<Record<string, string>>({});
+    const [formData, setFormData] = useState<Record<string, string | string[]>>({});
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [fileInputKey, setFileInputKey] = useState(Date.now());
     const [formError, setFormError] = useState<string | null>(null);
@@ -280,7 +281,7 @@ export default function DynamicToolPage() {
 
     async function handleGenerate() {
         const missingRequired = config.fields
-            .filter(f => f.required && !formData[f.id]?.trim())
+            .filter(f => f.required && (!formData[f.id] || (typeof formData[f.id] === 'string' ? !(formData[f.id] as string).trim() : (formData[f.id] as string[]).length === 0)))
             .map(f => f.label);
 
         if (missingRequired.length > 0) {
@@ -292,10 +293,9 @@ export default function DynamicToolPage() {
         setResult('');
 
         try {
-            const res = await fetch('/api/ai/tools', {
+            const res = await authFetch('/api/ai/tools', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ toolId, formData }),
+                body: JSON.stringify({ toolId, data: formData }),
             });
 
             if (!res.ok) throw new Error('Erro na API');
@@ -409,7 +409,28 @@ export default function DynamicToolPage() {
 
                 {/* Content area */}
                 {!result ? (
-                    <div className={`rounded-[2rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'} p-8 space-y-6`}>
+                    <div className={`rounded-[2rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'} p-8 space-y-6 relative overflow-hidden`}>
+                        {generating && (
+                            <div className={`absolute inset-0 flex flex-col items-center justify-center gap-8 z-20 ${isDark ? 'bg-[#1A1D1F]/90' : 'bg-white/90'} backdrop-blur-sm animate-in fade-in duration-500`}>
+                                <div className="relative">
+                                    <div className="w-24 h-24 border-2 rounded-full animate-ping absolute inset-0" style={{ borderColor: `${config.color}33` }}></div>
+                                    <div className="w-24 h-24 border-t-2 rounded-full animate-spin relative z-10" style={{ borderColor: config.color }}></div>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <Sparkles className="w-8 h-8 animate-pulse" style={{ color: config.color }} />
+                                    </div>
+                                </div>
+                                <div className="text-center space-y-2">
+                                    <p className="text-lg font-black tracking-widest uppercase" style={{ color: config.color }}>Processando com IA</p>
+                                    <LoadingPhrases phrases={[
+                                        "Mapeando seu nicho e as melhores referências...",
+                                        "Personalizando os detalhes baseados nos seus limites e desejos...",
+                                        "Estruturando conteúdos e ideias magnéticas...",
+                                        "Revisando o tom de voz e o impacto da mensagem...",
+                                        "Finalizando um material feito para se destacar de verdade..."
+                                    ]} />
+                                </div>
+                            </div>
+                        )}
                         <p className={`text-sm leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                             {config.description}
                         </p>
@@ -472,7 +493,7 @@ export default function DynamicToolPage() {
                                             }`}>
                                             {formData[field.id] ? (
                                                 <div className="relative w-full max-w-sm rounded-[1rem] overflow-hidden shadow-lg border border-gray-200 dark:border-white/10 group mx-auto">
-                                                    <img src={formData[field.id]} alt="Preview" className="w-full h-auto object-cover max-h-64" />
+                                                    <img src={formData[field.id] as string} alt="Preview" className="w-full h-auto object-cover max-h-64" />
                                                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
                                                         <button
                                                             onClick={() => setFormData({ ...formData, [field.id]: '' })}
@@ -509,6 +530,94 @@ export default function DynamicToolPage() {
                                                                         setFormData({ ...formData, [field.id]: reader.result as string });
                                                                     };
                                                                     reader.readAsDataURL(file);
+                                                                }
+                                                            }}
+                                                        />
+                                                    </label>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
+                                    {field.type === 'images' && (
+                                        <div className={`mt-2 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center p-8 transition-colors ${isDark ? 'border-white/10 bg-[#111315]' : 'border-gray-200 bg-gray-50'}`}>
+                                            {Array.isArray(formData[field.id]) && formData[field.id].length > 0 ? (
+                                                <div className="w-full">
+                                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+                                                        {(formData[field.id] as string[]).map((imgUrl, idx) => (
+                                                            <div key={idx} className="relative w-full aspect-square rounded-[1rem] overflow-hidden shadow-lg border border-gray-200 dark:border-white/10 group">
+                                                                <img src={imgUrl} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
+                                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            const newImages = [...(formData[field.id] as string[])];
+                                                                            newImages.splice(idx, 1);
+                                                                            setFormData({ ...formData, [field.id]: newImages });
+                                                                        }}
+                                                                        className="p-3 bg-red-500 rounded-full text-white hover:bg-red-600 transition-colors shadow-lg"
+                                                                    >
+                                                                        <X size={16} />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    <div className="flex justify-center">
+                                                        <label className="cursor-pointer bg-[#6C5DD3] hover:bg-[#5b4fbe] text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors shadow-md">
+                                                            <Upload size={16} />
+                                                            Adicionar Mais Prints
+                                                            <input
+                                                                type="file"
+                                                                className="hidden"
+                                                                accept="image/png, image/jpeg, image/webp"
+                                                                multiple
+                                                                onChange={(e) => {
+                                                                    const files = Array.from(e.target.files || []);
+                                                                    if (files.length > 0) {
+                                                                        const promises = files.map(file => new Promise<string>((resolve) => {
+                                                                            const reader = new FileReader();
+                                                                            reader.onloadend = () => resolve(reader.result as string);
+                                                                            reader.readAsDataURL(file);
+                                                                        }));
+                                                                        Promise.all(promises).then(results => {
+                                                                            const existing = Array.isArray(formData[field.id]) ? formData[field.id] : [];
+                                                                            setFormData(prev => ({ ...prev, [field.id]: [...existing, ...results] }));
+                                                                        });
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 ${isDark ? 'bg-white/5 text-gray-400' : 'bg-white shadow-sm text-gray-500'}`}>
+                                                        <ImageIcon size={24} />
+                                                    </div>
+                                                    <p className={`text-sm font-semibold mb-1 text-center ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                                                        Clique para fazer upload ou arraste as imagens
+                                                    </p>
+                                                    <p className={`text-xs mb-5 text-center ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                                        Envie prints (PNG, JPG ou WEBP) do seu portfólio.
+                                                    </p>
+                                                    <label className="cursor-pointer bg-[#6C5DD3] hover:bg-[#5b4fbe] text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors shadow-md">
+                                                        <Upload size={16} />
+                                                        Selecionar Imagens
+                                                        <input
+                                                            type="file"
+                                                            className="hidden"
+                                                            accept="image/png, image/jpeg, image/webp"
+                                                            multiple
+                                                            onChange={(e) => {
+                                                                const files = Array.from(e.target.files || []);
+                                                                if (files.length > 0) {
+                                                                    const promises = files.map(file => new Promise<string>((resolve) => {
+                                                                        const reader = new FileReader();
+                                                                        reader.onloadend = () => resolve(reader.result as string);
+                                                                        reader.readAsDataURL(file);
+                                                                    }));
+                                                                    Promise.all(promises).then(results => {
+                                                                        setFormData(prev => ({ ...prev, [field.id]: results }));
+                                                                    });
                                                                 }
                                                             }}
                                                         />
@@ -570,7 +679,9 @@ export default function DynamicToolPage() {
                                 </button>
                             </div>
 
-                            <div className={`prose max-w-none ${isDark ? 'prose-invert' : ''} text-sm leading-relaxed`}>
+                            <div className={`prose max-w-none ${isDark ? 'prose-invert' : ''} text-sm leading-relaxed
+                                [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:bg-transparent [&_pre]:p-0
+                                [&_code]:break-words [&_code]:whitespace-pre-wrap [&_code]:bg-transparent [&_code]:p-0`}>
                                 <ReactMarkdown>{result}</ReactMarkdown>
                             </div>
                         </div>

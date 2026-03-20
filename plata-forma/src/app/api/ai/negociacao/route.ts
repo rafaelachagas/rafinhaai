@@ -1,17 +1,21 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
+import { checkAccess } from '@/lib/check-access';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY!);
 
 export async function POST(request: Request) {
     try {
+        const access = await checkAccess(request);
+        if (access instanceof NextResponse) return access;
+
         const { messages, contexto } = await request.json();
 
         if (!messages || messages.length === 0) {
             return NextResponse.json({ error: 'Conversa vazia.' }, { status: 400 });
         }
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
         const systemPrompt = `
 Você é um simulador de negociação chamado Rafinha.AI. Você vai interpretar o papel de um CLIENTE DIFÍCIL que está interessado em comprar mas tem muitas objeções.

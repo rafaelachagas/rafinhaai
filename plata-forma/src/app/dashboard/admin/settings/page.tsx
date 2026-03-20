@@ -18,7 +18,7 @@ interface PdfSettings {
 }
 
 const DEFAULT_SETTINGS: PdfSettings = {
-    logo_url: '/logo-original-si.png',
+    logo_url: '',
     footer_roteiro: 'Roteiro gerado pelo App Profissão do Futuro.',
     footer_analise: 'Análise gerada pelo App Profissão do Futuro.',
     footer_bio: 'Bio gerada pelo App Profissão do Futuro.',
@@ -33,7 +33,7 @@ export default function AdminSettingsPage() {
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [uploading, setUploading] = useState(false);
-    const [logoPreview, setLogoPreview] = useState<string>('/logo-original-si.png');
+    const [logoPreview, setLogoPreview] = useState<string>('');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {

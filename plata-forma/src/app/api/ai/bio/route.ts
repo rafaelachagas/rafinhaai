@@ -1,17 +1,21 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
+import { checkAccess } from '@/lib/check-access';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY!);
 
 export async function POST(request: Request) {
     try {
+        const access = await checkAccess(request);
+        if (access instanceof NextResponse) return access;
+
         const { nome, nicho, resultados, diferenciais, publicoAlvo, tomVoz, objetivo, estilo } = await request.json();
 
         if (!nicho || !publicoAlvo) {
             return NextResponse.json({ error: 'Preencha pelo menos o nicho e o público-alvo.' }, { status: 400 });
         }
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
         const fullPrompt = `
 Você é Rafinha.AI, um especialista em branding pessoal e copywriting para Instagram. Você cria bios que convertem seguidores em clientes e transmitem autoridade instantânea.

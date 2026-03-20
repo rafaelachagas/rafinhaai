@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
 import { supabase } from '@/lib/supabase/client';
+import { authFetch } from '@/lib/auth-fetch';
 import { Header } from '@/components/Header';
 import {
     ArrowLeft, Send, Loader2, MessageSquare, RotateCcw, BarChart3, Bot, User, Settings2
@@ -74,9 +75,8 @@ export default function NegociacaoPage() {
         setSending(true);
 
         try {
-            const res = await fetch('/api/ai/negociacao', {
+            const res = await authFetch('/api/ai/negociacao', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ messages: initialMessages, contexto }),
             });
             const data = await res.json();
@@ -100,9 +100,8 @@ export default function NegociacaoPage() {
         setSending(true);
 
         try {
-            const res = await fetch('/api/ai/negociacao', {
+            const res = await authFetch('/api/ai/negociacao', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ messages: updatedMessages, contexto }),
             });
             const data = await res.json();
@@ -121,9 +120,8 @@ export default function NegociacaoPage() {
         setShowFeedback(true);
         setLoadingFeedback(true);
         try {
-            const res = await fetch('/api/ai/negociacao/feedback', {
+            const res = await authFetch('/api/ai/negociacao/feedback', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ messages, contexto }),
             });
             const data = await res.json();
@@ -263,7 +261,9 @@ export default function NegociacaoPage() {
                                     </button>
                                 </div>
                                 <div className={`p-8 rounded-[2rem] border ${isDark ? 'bg-black/30 border-white/5' : 'bg-gray-50 border-gray-100'}`}>
-                                    <div className={`prose max-w-none ${isDark ? 'prose-invert' : ''} prose-emerald font-medium leading-relaxed`}>
+                                    <div className={`prose max-w-none ${isDark ? 'prose-invert' : ''} prose-emerald font-medium leading-relaxed
+                                        [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:bg-transparent [&_pre]:p-0
+                                        [&_code]:break-words [&_code]:whitespace-pre-wrap [&_code]:bg-transparent [&_code]:p-0`}>
                                         <ReactMarkdown>{feedback}</ReactMarkdown>
                                     </div>
                                 </div>

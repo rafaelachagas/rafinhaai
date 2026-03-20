@@ -1,17 +1,21 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
+import { checkAccess } from '@/lib/check-access';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY!);
 
 export async function POST(request: Request) {
     try {
+        const access = await checkAccess(request);
+        if (access instanceof NextResponse) return access;
+
         const { roteiro, plataforma, objetivo } = await request.json();
 
         if (!roteiro) {
             return NextResponse.json({ error: 'Cole seu roteiro para análise.' }, { status: 400 });
         }
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
         const fullPrompt = `
 Você é um analista de conteúdo digital de elite chamado Rafinha.AI. Você analisa roteiros de vídeos com um olhar crítico e construtivo, focando em performance, retenção e conversão.

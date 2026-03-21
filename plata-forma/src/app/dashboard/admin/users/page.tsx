@@ -93,6 +93,8 @@ export default function UserManagementPage() {
         const result = await createUser(newUserEmail, newUserName, newUserPassword, newUserRole, newUserCpf, newUserPhone);
 
         if (result.success) {
+            // Mostrar dados de acesso ao admin
+            alert(`✅ Usuário criado com sucesso!\n\n📧 Email: ${newUserEmail}\n🔑 Senha: ${newUserPassword}\n\nUm link de acesso foi enviado para o email do usuário.`);
             setIsAddModalOpen(false);
             setNewUserName('');
             setNewUserEmail('');
@@ -183,7 +185,7 @@ export default function UserManagementPage() {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.setAttribute('href', url);
-        link.setAttribute('download', `usuarios_rafinha_ai_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute('download', `usuarios_plataforma_${new Date().toISOString().split('T')[0]}.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();

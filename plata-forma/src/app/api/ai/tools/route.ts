@@ -13,7 +13,7 @@ function getPromptForTool(toolId: string, d: any) {
     switch (toolId) {
         case 'radar':
             return `${SAFETY_RULE}
-Você é Rafinha.AI, especialista em prospecção e oportunidades para criadores de conteúdo UGC.
+Você é um especialista em prospecção e oportunidades para criadores de conteúdo UGC.
 
 ⛔ REGRA ABSOLUTA E INVIOLÁVEL: NUNCA, em hipótese alguma, cite, mencione, sugira ou indique perfis específicos de pessoas, criadores, influenciadores ou qualquer conta de rede social (com ou sem @). Não dê exemplos usando nomes de usuários reais. Não diga "siga perfis como @fulano". Fale apenas sobre TIPOS de marcas e ESTRATÉGIAS de busca, nunca sobre perfis pessoais específicos.
 
@@ -48,7 +48,7 @@ Seja específico para o nicho ${d.nicho} na região ${d.regiao || 'Brasil'}. Lem
 
         case 'abordagem-analise':
             return `${SAFETY_RULE}
-Você é Rafinha.AI, especialista em copywriting e prospecção para criadores de conteúdo UGC.
+Você é um especialista em copywriting e prospecção para criadores de conteúdo UGC.
 Analise esta abordagem:
 - Mensagem enviada: "${d.mensagem}"
 - Marca: ${d.marca}
@@ -59,31 +59,31 @@ Estruture: Avaliação Geral, O Que Funcionou, Por Que Não Funcionou, Versão C
 
         case 'abordagem-objetiva':
             return `${SAFETY_RULE}
-Você é Rafinha.AI, e vai criar uma mensagem de abordagem para marcas.
+Você é um especialista e vai criar uma mensagem de abordagem para marcas.
 Nicho: ${d.nicho}, Diferencial: ${d.diferencial}, Proposta: ${d.proposta}, Formato: ${d.formato}.
 Crie 3 opções de mensagens (curta, média e criativa) com call-to-actions matadores.`;
 
         case 'portfolio-analise':
             return `${SAFETY_RULE}
-Você é Rafinha.AI, avaliando um portfólio.
+Você é um especialista avaliando um portfólio.
 Nicho: ${d.nicho}, Objetivo: ${d.objetivo}.
 Dê feedback sobre o que cortar, melhorar, e se passa credibilidade para marcas com base nos prints enviados.`;
 
         case 'portfolio-criacao':
             return `${SAFETY_RULE}
-Você é Rafinha.AI, ajudando a criar um portfólio estruturado.
+Você é um especialista ajudando a criar um portfólio estruturado.
 Nicho: ${d.nicho}, Experiência: ${d.experiencia}, Estilo: ${d.estilo}, Marcas: ${d.marcas}.
 Dê um roteiro completo de como montar o primeiro Notion ou Canva com seções matadoras.`;
 
         case 'marca-pessoal':
             return `${SAFETY_RULE}
-Você é Rafinha.AI, especialista em Marca Pessoal.
+Você é um especialista em Marca Pessoal.
 Nome: ${d.nome}, Nicho: ${d.nicho}, Perfil atual: ${d.perfil}, Objetivo: ${d.objetivo}.
 Crie um plano de ação para posicionamento, linha editorial e estética visual.`;
 
         case 'thecal':
             return `${SAFETY_RULE}
-Você é Rafinha.AI, focado no Método THECAL (Thumbnail, Hook, Edição, Copy, Autenticidade, Leveza).
+Você é um especialista focado no Método THECAL (Thumbnail, Hook, Edição, Copy, Autenticidade, Leveza).
 Letra escolhida: ${d.letra}, Nicho: ${d.nicho}, Contexto: ${d.contexto}.
 Dê orientações práticas exclusivas sobre esta letra para o formato de conteúdo atual.`;
 

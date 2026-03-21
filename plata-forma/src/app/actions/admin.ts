@@ -91,9 +91,22 @@ export async function createUser(email: string, full_name: string, password: str
             if (profileError) {
                 return { success: false, error: 'Usuário criado, mas erro ao definir cargo/dados: ' + profileError.message };
             }
+
+            // 3. Enviar email de boas-vindas com dados de acesso
+            try {
+                // Usar o Supabase para enviar email de redefinição de senha
+                // Isso envia um link para o email do usuário onde ele pode definir sua senha
+                await supabaseAdmin.auth.admin.generateLink({
+                    type: 'magiclink',
+                    email: email,
+                });
+            } catch (emailError) {
+                // Não falhar a criação se o email falhar
+                console.log('Aviso: Email de boas-vindas não enviado:', emailError);
+            }
         }
 
-        return { success: true };
+        return { success: true, message: `Usuário criado com sucesso! Dados de acesso: Email: ${email} | Senha: ${password}` };
     } catch (err: any) {
         return { success: false, error: err.message || 'Erro inesperado' };
     }

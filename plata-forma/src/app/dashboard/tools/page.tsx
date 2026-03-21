@@ -31,7 +31,7 @@ const TOOL_CATEGORIES = [
             {
                 id: 'analise-roteiro',
                 title: 'Análise de Roteiros',
-                description: 'Cole seu texto e a IA aponta os pontos fortes, pontos de melhoria e entrega uma versão otimizada.',
+                description: 'Cole seu texto e receba os pontos fortes, pontos de melhoria e uma versão otimizada.',
                 icon: Eye,
                 color: 'text-[#8B7AD8]',
                 bgLight: 'bg-[#8B7AD8]/10',
@@ -255,10 +255,10 @@ export default function ToolsPage() {
                     <div className="max-w-xl space-y-5 relative z-10">
                         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/20 border border-white/30 text-[10px] font-bold uppercase tracking-widest backdrop-blur-md shadow-inner">
                             <Bot size={14} className="text-yellow-300 drop-shadow-md" />
-                            <span>Central de Ferramentas IA</span>
+                            <span>Central de Ferramentas</span>
                         </div>
                         <h1 className="text-4xl lg:text-5xl font-extrabold leading-tight tracking-tight drop-shadow-sm">
-                            15 ferramentas de IA pra você dominar o jogo
+                            15 ferramentas pra você dominar o jogo
                         </h1>
                         <p className="text-white/90 text-lg max-w-lg font-medium">
                             Do roteiro à abordagem, do portfólio ao gancho — tudo estruturado com a metodologia da Formação pra você criar, analisar e converter.
@@ -358,11 +358,7 @@ function ToolCard({ title, description, icon: Icon, color, bgLight, bgDark, isDa
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${color} ${iconBg} transition-all duration-300 group-hover:scale-105`}>
                     <Icon size={22} strokeWidth={2.5} />
                 </div>
-                {/* Minimalist AI Indicator instead of heavy badge */}
-                <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'} opacity-60`}>
-                    <Sparkles size={10} />
-                    <span>IA</span>
-                </div>
+
             </div>
 
             <h3 className={`text-base font-bold mb-2 relative z-10 ${isDark ? 'text-gray-100 group-hover:text-white' : 'text-[#1B1D21] group-hover:text-[#6C5DD3]'} transition-colors leading-snug`}>

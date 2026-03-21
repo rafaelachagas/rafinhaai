@@ -14,7 +14,7 @@ export async function POST(request: Request) {
         const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
         const fullPrompt = `
-Você é Rafinha.AI, um analista especialista em negociações de vendas digitais.
+Você é um analista especialista em negociações de vendas digitais.
 
 O vendedor acabou de realizar uma simulação de negociação. Analise TODA a conversa abaixo e forneça um feedback detalhado.
 

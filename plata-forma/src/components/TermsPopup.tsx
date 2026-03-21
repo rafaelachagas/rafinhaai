@@ -112,7 +112,7 @@ export function TermsPopup() {
                             <h2 className={`text-2xl font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>Acesso Expirado</h2>
                             <p className={`text-base leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                                 Seu período de 1 ano de acesso à Plataforma Profissão do Futuro chegou ao fim. 
-                                Para continuar acessando os conteúdos e ferramentas de Inteligência Artificial, por favor, realize a renovação do seu plano.
+                                Para continuar acessando os conteúdos e ferramentas, por favor, realize a renovação do seu plano.
                             </p>
                         </div>
                         <div className="pt-4">

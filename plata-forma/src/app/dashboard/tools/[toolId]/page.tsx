@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { LoadingPhrases } from '@/components/LoadingPhrases';
+import { PhonePopup } from '@/components/PhonePopup';
 
 interface FieldConfig {
     id: string;
@@ -252,9 +253,11 @@ export default function DynamicToolPage() {
     const contentRef = useRef<HTMLDivElement>(null);
     const [pdfSettings, setPdfSettings] = useState({
         logo: '',
-        footer: 'Documento gerado pelo App Profissão do Futuro.'
+        footer: 'Documento gerado pelo App Profissão do Futuro.',
+        filename: ''
     });
     const [downloadingPDF, setDownloadingPDF] = useState(false);
+    const [showPhonePopup, setShowPhonePopup] = useState(false);
 
     const config = TOOL_CONFIGS[toolId];
 
@@ -281,7 +284,8 @@ export default function DynamicToolPage() {
                 const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
                 setPdfSettings({
                     logo: parsed.logo_url !== undefined ? parsed.logo_url : '',
-                    footer: parsed.footer_roteiro || 'Documento gerado pelo App Profissão do Futuro.'
+                    footer: parsed['footer_' + toolId] || parsed.footer_roteiro || 'Documento gerado pelo App Profissão do Futuro.',
+                    filename: parsed['filename_' + toolId] || ''
                 });
             }
         } catch (e) {
@@ -333,6 +337,12 @@ export default function DynamicToolPage() {
 
         if (missingRequired.length > 0) {
             setFormError(`Preencha os campos obrigatórios:\n• ${missingRequired.join('\n• ')}`);
+            return;
+        }
+
+        // Verificar se o telefone está preenchido
+        if (!profile?.phone) {
+            setShowPhonePopup(true);
             return;
         }
 
@@ -402,7 +412,7 @@ export default function DynamicToolPage() {
 
             const opt: any = {
                 margin: [15, 15, 20, 15],
-                filename: `${config.title}_${new Date().getTime()}.pdf`,
+                filename: pdfSettings.filename ? `${pdfSettings.filename}_${new Date().getTime()}.pdf` : `${config.title}_${new Date().getTime()}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2, useCORS: true, letterRendering: true },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -474,6 +484,10 @@ export default function DynamicToolPage() {
                     </div>
                 )}
 
+                {showPhonePopup && (
+                    <PhonePopup onClose={() => setShowPhonePopup(false)} />
+                )}
+
                 <button
                     onClick={() => router.push('/dashboard/tools')}
                     className={`flex items-center gap-2 text-sm font-bold uppercase tracking-widest ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-[#1B1D21]'} transition-colors w-fit`}
@@ -539,7 +553,7 @@ export default function DynamicToolPage() {
                                         </div>
                                     </div>
                                     <div className="text-center space-y-2">
-                                        <p className="text-lg font-black tracking-widest uppercase" style={{ color: config.color }}>Processando com IA</p>
+                                        <p className="text-lg font-black tracking-widest uppercase" style={{ color: config.color }}>Processando</p>
                                         <LoadingPhrases phrases={[
                                             "Mapeando seu nicho e referências...",
                                             "Ajustando ao seu perfil e objetivos...",
@@ -764,7 +778,7 @@ export default function DynamicToolPage() {
                                     ) : (
                                         <>
                                             <Sparkles size={18} />
-                                            Gerar com IA
+                                            Gerar
                                         </>
                                     )}
                                 </button>

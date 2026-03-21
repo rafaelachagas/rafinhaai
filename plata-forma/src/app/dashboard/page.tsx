@@ -174,9 +174,9 @@ export default function Dashboard() {
                             {/* Slide 1 - IA Tools */}
                             <section className="min-w-full relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-[#6C5DD3] to-[#8E82E3] p-10 lg:p-14 text-white">
                                 <div className="max-w-md space-y-4 relative z-10">
-                                    <p className="text-sm font-bold uppercase tracking-widest opacity-80">INTELIGÊNCIA ARTIFICIAL</p>
+                                    <p className="text-sm font-bold uppercase tracking-widest opacity-80">FERRAMENTAS</p>
                                     <h1 className="text-4xl lg:text-5xl font-bold leading-tight tracking-tight">
-                                        Afie suas habilidades com a <br /> IA da Formação
+                                        Afie suas habilidades com as <br /> Ferramentas da Formação
                                     </h1>
                                     <button
                                         onClick={() => router.push('/dashboard/tools')}

@@ -18,7 +18,7 @@ export async function POST(request: Request) {
         const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
         const systemPrompt = `
-Você é um simulador de negociação chamado Rafinha.AI. Você vai interpretar o papel de um CLIENTE DIFÍCIL que está interessado em comprar mas tem muitas objeções.
+Você é um simulador de negociação. Você vai interpretar o papel de um CLIENTE DIFÍCIL que está interessado em comprar mas tem muitas objeções.
 
 ### CONTEXTO DA NEGOCIAÇÃO:
 ${contexto ? `

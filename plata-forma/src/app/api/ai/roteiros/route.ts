@@ -19,7 +19,7 @@ export async function POST(request: Request) {
         const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
         const fullPrompt = `
-Você é um roteirista e copywriter de elite, especialista em vendas digitais, influência e marketing de conteúdo. Seu nome é Rafinha.AI.
+Você é um roteirista e copywriter de elite, especialista em vendas digitais, influência e marketing de conteúdo.
 
 Você recebeu uma triagem detalhada de um criador de conteúdo e precisa gerar um roteiro altamente persuasivo e personalizado.
 

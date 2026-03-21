@@ -64,7 +64,7 @@ export default function ScriptsPage() {
                     <div className="space-y-2">
                         <div className="flex items-center gap-2 text-[#B42AF0] font-black text-[10px] uppercase tracking-[0.4em]">
                             <Sparkles size={12} />
-                            Inteligência Artificial
+                            Ferramentas
                         </div>
                         <h1 className="text-5xl font-black tracking-tighter">Criador de <span className="text-[#B42AF0]">Roteiros</span></h1>
                         <p className="text-gray-400 font-medium max-w-md">Transforme ideias simples em roteiros cinematográficos e de alta conversão em segundos.</p>
@@ -137,7 +137,7 @@ export default function ScriptsPage() {
                                     </div>
                                     <div className="space-y-2">
                                         <h3 className="text-xl font-black tracking-tight">Pronto para criar?</h3>
-                                        <p className="text-gray-500 max-w-xs mx-auto text-sm font-medium leading-relaxed">Preencha os detalhes ao lado e deixe nossa IA fazer a mágica acontecer.</p>
+                                        <p className="text-gray-500 max-w-xs mx-auto text-sm font-medium leading-relaxed">Preencha os detalhes ao lado e deixe a mágica acontecer.</p>
                                     </div>
                                 </div>
                             )}

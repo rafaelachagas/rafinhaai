@@ -23,10 +23,11 @@ import {
     FileText,
     ChevronDown,
     ChevronUp,
-    Eye
+    Eye,
+    Download
 } from 'lucide-react';
 import { Header } from '@/components/Header';
-import ReactMarkdown from 'react-markdown';
+import { parseBBCodeToHtml } from '@/components/TermsPopup';
 
 interface Profile {
     id: string;
@@ -163,6 +164,23 @@ export default function CRMPage() {
         }
         
         setLoadingTermsHistory(false);
+    };
+
+    const handleDownloadCertificate = () => {
+        if (!selectedTermReceipt || typeof window === 'undefined') return;
+        const element = document.getElementById('certificate-content');
+        if (!element) return;
+        
+        import('html2pdf.js').then((html2pdf) => {
+            const opt = {
+                margin: 10,
+                filename: `Certificado_Aceite_${selectedUser?.full_name}_V${selectedTermReceipt.version}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            } as any;
+            html2pdf.default().from(element).set(opt).save();
+        });
     };
 
     const handleSaveNote = async () => {
@@ -607,35 +625,56 @@ export default function CRMPage() {
                             </button>
                         </div>
 
-                        {/* Dados da Assinatura */}
-                        <div className={`p-6 border-b flex flex-wrap gap-6 ${isDark ? 'bg-white/5 border-white/10' : 'bg-blue-50 border-blue-100'}`}>
-                            <div className="flex-1 min-w-[200px]">
-                                <span className={`block text-[10px] font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-gray-500' : 'text-blue-600/60'}`}>Usuário (Signatário)</span>
-                                <p className={`font-bold ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>{selectedUser.full_name || 'Usuário Não Identificado'}</p>
-                                <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{selectedUser.email}</p>
+                        {/* Conteudo Capturavel pelo PDF */}
+                        <div id="certificate-content" className="flex-1 overflow-y-auto flex flex-col">
+                            {/* Dados da Assinatura */}
+                            <div className={`p-6 border-b flex flex-wrap gap-6 ${isDark ? 'bg-white/5 border-white/10' : 'bg-blue-50 border-blue-100'}`}>
+                                <div className="flex-1 min-w-[200px]">
+                                    <span className={`block text-[10px] font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-gray-500' : 'text-blue-600/60'}`}>Usuário (Signatário)</span>
+                                    <p className={`font-bold ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>{selectedUser.full_name || 'Usuário Não Identificado'}</p>
+                                    <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{selectedUser.email}</p>
+                                </div>
+                                <div className="flex-1 min-w-[200px]">
+                                    <span className={`block text-[10px] font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-gray-500' : 'text-blue-600/60'}`}>Identificadores</span>
+                                    <p className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>ID: {selectedUser.id}</p>
+                                    <p className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Telefone: {selectedUser.phone || 'Não Arquivado'}</p>
+                                </div>
+                                <div className="flex-1 min-w-[200px]">
+                                    <span className={`block text-[10px] font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-gray-500' : 'text-blue-600/60'}`}>Dados do Aceite</span>
+                                    <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>Versão do Documento: {selectedTermReceipt.version}</p>
+                                    <p className={`text-xs ${isDark ? 'text-green-400' : 'text-green-600'} font-bold mt-1 tracking-wider`}>ACEITO EM: {new Date(selectedTermReceipt.accepted_at).toLocaleString()}</p>
+                                </div>
                             </div>
-                            <div className="flex-1 min-w-[200px]">
-                                <span className={`block text-[10px] font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-gray-500' : 'text-blue-600/60'}`}>Identificadores</span>
-                                <p className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>ID: {selectedUser.id}</p>
-                                <p className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Telefone: {selectedUser.phone || 'Não Arquivado'}</p>
-                            </div>
-                            <div className="flex-1 min-w-[200px]">
-                                <span className={`block text-[10px] font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-gray-500' : 'text-blue-600/60'}`}>Dados do Aceite</span>
-                                <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>Versão do Documento: {selectedTermReceipt.version}</p>
-                                <p className={`text-xs ${isDark ? 'text-green-400' : 'text-green-600'} font-bold mt-1 tracking-wider`}>ACEITO EM: {new Date(selectedTermReceipt.accepted_at).toLocaleString()}</p>
+
+                            {/* Corpo do Documento */}
+                            <div className="flex-1 p-6 md:p-8 bg-black/5 dark:bg-black/50">
+                                <div className={`mx-auto max-w-3xl p-8 border rounded-lg shadow-sm ${isDark ? 'bg-[#0F0F0F] border-white/5' : 'bg-white border-gray-200'}`}>
+                                    <div className="mb-6 pb-6 border-b border-dashed border-gray-300 dark:border-gray-700 text-center">
+                                        <h3 className={`text-lg font-bold uppercase tracking-widest ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Cópia Fiel do Documento</h3>
+                                    </div>
+                                    <div 
+                                        className={`prose prose-sm max-w-none ${isDark ? 'prose-invert prose-p:text-gray-300' : 'prose-gray prose-p:text-gray-600'} text-sm leading-relaxed`}
+                                        dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(selectedTermReceipt.text) }}
+                                    />
+                                </div>
                             </div>
                         </div>
-
-                        {/* Corpo do Documento */}
-                        <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-black/5 dark:bg-black/50">
-                            <div className={`mx-auto max-w-3xl p-8 border rounded-lg shadow-sm ${isDark ? 'bg-[#0F0F0F] border-white/5' : 'bg-white border-gray-200'}`}>
-                                <div className="mb-6 pb-6 border-b border-dashed border-gray-300 dark:border-gray-700 text-center">
-                                    <h3 className={`text-lg font-bold uppercase tracking-widest ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Cópia Fiel do Documento</h3>
-                                </div>
-                                <div className={`prose prose-sm max-w-none ${isDark ? 'prose-invert prose-p:text-gray-300' : 'prose-gray prose-p:text-gray-600'}`}>
-                                    <ReactMarkdown>{selectedTermReceipt.text}</ReactMarkdown>
-                                </div>
-                            </div>
+                        
+                        {/* Footer Botoes */}
+                        <div className={`p-6 border-t flex justify-end gap-4 ${isDark ? 'border-white/10 bg-[#1B1D21]' : 'border-gray-100 bg-gray-50'}`}>
+                            <button
+                                onClick={() => setSelectedTermReceipt(null)}
+                                className={`px-6 py-3 rounded-2xl font-bold text-sm transition-all ${isDark ? 'bg-white/5 hover:bg-white/10 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
+                            >
+                                Fechar
+                            </button>
+                            <button
+                                onClick={handleDownloadCertificate}
+                                className="px-6 py-3 rounded-2xl font-bold text-sm text-white bg-[#FF754C] hover:bg-[#e66a45] transition-all flex items-center gap-2"
+                            >
+                                <Download size={18} />
+                                Salvar em PDF
+                            </button>
                         </div>
                     </div>
                 </div>

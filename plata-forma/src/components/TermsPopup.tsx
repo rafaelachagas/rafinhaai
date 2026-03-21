@@ -4,8 +4,31 @@ import { useState, useEffect } from 'react';
 import { useTheme } from '@/context/ThemeContext';
 import { supabase } from '@/lib/supabase/client';
 import { Shield, Check, Loader2, AlertCircle } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
 import { PhonePopup } from './PhonePopup';
+
+export const parseBBCodeToHtml = (text: string) => {
+    if (!text) return '';
+    
+    // Prevent primitive XSS but allow our tags
+    let html = text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+
+    // Replace basic BBCode
+    html = html.replace(/\[b\](.*?)\[\/b\]/gi, "<strong>$1</strong>");
+    html = html.replace(/\[i\](.*?)\[\/i\]/gi, "<em>$1</em>");
+    html = html.replace(/\[u\](.*?)\[\/u\]/gi, "<u>$1</u>");
+    html = html.replace(/\[url=(.*?)\](.*?)\[\/url\]/gi, "<a href='$1' target='_blank' rel='noopener noreferrer' style='color: #FF754C; text-decoration: underline'>$2</a>");
+    html = html.replace(/\[size=(.*?)\](.*?)\[\/size\]/gi, "<span style='font-size: $1'>$2</span>");
+    html = html.replace(/\[color=(.*?)\](.*?)\[\/color\]/gi, "<span style='color: $1'>$2</span>");
+    html = html.replace(/\[align=(.*?)\](.*?)\[\/align\]/gi, "<div style='text-align: $1'>$2</div>");
+
+    // Apply proper paragraph breaks or line breaks for \n
+    html = html.replace(/\n/g, "<br/>");
+
+    return html;
+};
 
 export function TermsPopup() {
     const { profile, isDark, refreshProfile } = useTheme();
@@ -243,9 +266,10 @@ export function TermsPopup() {
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto p-6 md:p-8">
-                    <div className={`prose max-w-none ${isDark ? 'prose-invert prose-p:text-gray-300' : 'prose-gray prose-p:text-gray-600'} prose-headings:font-bold prose-a:text-[#FF754C]`}>
-                        <ReactMarkdown>{termsHtml}</ReactMarkdown>
-                    </div>
+                    <div 
+                        className={`prose max-w-none ${isDark ? 'prose-invert prose-p:text-gray-300' : 'prose-gray prose-p:text-gray-600'} text-sm leading-relaxed`}
+                        dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(termsHtml) }} 
+                    />
                 </div>
 
                 {/* Footer Actions */}

@@ -17,6 +17,7 @@ export default function SettingsPage() {
 
     // Profile states
     const [fullName, setFullName] = useState('');
+    const [phone, setPhone] = useState('');
     const [avatarUrl, setAvatarUrl] = useState('');
     const [uploading, setUploading] = useState(false);
 
@@ -31,6 +32,7 @@ export default function SettingsPage() {
         }
         if (profile) {
             setFullName(profile.full_name || '');
+            setPhone(profile.phone || '');
             setAvatarUrl(profile.avatar_url || '');
         }
     }, [profile, themeLoading, router]);
@@ -128,9 +130,27 @@ export default function SettingsPage() {
         }
     };
 
-    const handleUpdateName = async () => {
+    const formatPhone = (value: string) => {
+        const digits = value.replace(/\D/g, '');
+        if (digits.length <= 2) return digits;
+        if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+        if (digits.length <= 11) return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+        return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+    };
+
+    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setPhone(formatPhone(e.target.value));
+    };
+
+    const handleUpdateProfile = async () => {
         if (!fullName || fullName.length < 3) {
             showMessage('error', 'O nome deve ter pelo menos 3 caracteres.');
+            return;
+        }
+
+        const phoneDigits = phone.replace(/\D/g, '');
+        if (phoneDigits && (phoneDigits.length < 10 || phoneDigits.length > 11)) {
+            showMessage('error', 'O telefone deve conter DDD e ser válido.');
             return;
         }
 
@@ -138,14 +158,14 @@ export default function SettingsPage() {
 
         const { error } = await supabase
             .from('profiles')
-            .update({ full_name: fullName })
+            .update({ full_name: fullName, phone: phone })
             .eq('id', profile?.id);
 
         if (error) {
-            showMessage('error', 'Erro ao atualizar nome.');
+            showMessage('error', 'Erro ao atualizar informações.');
         } else {
             await refreshProfile();
-            showMessage('success', 'Nome atualizado com sucesso!');
+            showMessage('success', 'Informações atualizadas com sucesso!');
         }
 
         setLoading(false);
@@ -268,23 +288,36 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-bold text-gray-400 mb-2">Nome Completo</label>
-                            <input
-                                type="text"
-                                value={fullName}
-                                onChange={(e) => setFullName(e.target.value)}
-                                className={`w-full px-4 py-3 rounded-2xl border ${isDark ? 'bg-[#0F0F0F] border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'} focus:outline-none focus:border-[#6C5DD3] transition-colors`}
-                                placeholder="Seu nome completo"
-                            />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-400 mb-2">Nome Completo</label>
+                                <input
+                                    type="text"
+                                    value={fullName}
+                                    onChange={(e) => setFullName(e.target.value)}
+                                    className={`w-full px-4 py-3 rounded-2xl border ${isDark ? 'bg-[#0F0F0F] border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'} focus:outline-none focus:border-[#6C5DD3] transition-colors`}
+                                    placeholder="Seu nome completo"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-400 mb-2">Telefone com DDD</label>
+                                <input
+                                    type="tel"
+                                    value={phone}
+                                    onChange={handlePhoneChange}
+                                    className={`w-full px-4 py-3 rounded-2xl border ${isDark ? 'bg-[#0F0F0F] border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'} focus:outline-none focus:border-[#6C5DD3] transition-colors`}
+                                    placeholder="(11) 99999-9999"
+                                    maxLength={16}
+                                />
+                            </div>
                         </div>
                         <button
-                            onClick={handleUpdateName}
+                            onClick={handleUpdateProfile}
                             disabled={loading}
-                            className="px-6 py-3 bg-blue-500 text-white rounded-2xl font-bold text-sm hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            className="px-6 py-3 mt-4 bg-blue-500 text-white rounded-2xl font-bold text-sm hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
                             <Save size={18} />
-                            {loading ? 'Salvando...' : 'Salvar Nome'}
+                            {loading ? 'Salvando...' : 'Salvar Informações'}
                         </button>
                     </div>
                 </section>

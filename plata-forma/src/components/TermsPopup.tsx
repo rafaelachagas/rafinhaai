@@ -5,6 +5,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { supabase } from '@/lib/supabase/client';
 import { Shield, Check, Loader2, AlertCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { PhonePopup } from './PhonePopup';
 
 export function TermsPopup() {
     const { profile, isDark, refreshProfile } = useTheme();
@@ -15,6 +16,7 @@ export function TermsPopup() {
     const [isRevoked, setIsRevoked] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [pendingVersion, setPendingVersion] = useState<number | null>(null);
+    const [showPhoneOnboarding, setShowPhoneOnboarding] = useState(false);
 
     // Determines if we need to show the popup or if access is expired
     useEffect(() => {
@@ -131,9 +133,25 @@ export function TermsPopup() {
         }
 
         await refreshProfile();
+        
+        if (!profile.phone || profile.phone.trim() === '') {
+            setShowPhoneOnboarding(true);
+            setLoading(false);
+            return;
+        }
+
         setIsOpen(false);
         setLoading(false);
     };
+
+    if (showPhoneOnboarding) {
+        return (
+            <PhonePopup onClose={() => {
+                setShowPhoneOnboarding(false);
+                setIsOpen(false);
+            }} />
+        );
+    }
 
     if (!isOpen) return null;
 

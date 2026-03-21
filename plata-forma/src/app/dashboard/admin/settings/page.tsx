@@ -107,6 +107,7 @@ interface TermsVersion {
     id: string;
     version: number;
     text: string;
+    change_summary?: string | null;
     created_at: string;
     created_by: string;
     is_active: boolean;
@@ -132,6 +133,7 @@ export default function AdminSettingsPage() {
     const [showVersions, setShowVersions] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
     const [loadingVersions, setLoadingVersions] = useState(false);
+    const [changeSummary, setChangeSummary] = useState('');
     const termsEditorRef = useRef<HTMLTextAreaElement>(null);
 
     // PDF sections collapse state
@@ -289,6 +291,7 @@ export default function AdminSettingsPage() {
                 const { error: insertError } = await supabase.from('terms_versions').insert({
                     version: nextVersion,
                     text: termsText,
+                    change_summary: changeSummary.trim() || null,
                     created_by: profile?.email || 'admin',
                     is_active: true,
                     created_at: new Date().toISOString()
@@ -314,6 +317,7 @@ export default function AdminSettingsPage() {
                     .neq('role', 'admin');
 
                 localStorage.removeItem('admin_terms_draft');
+                setChangeSummary('');
 
             } catch (versionError) {
                 console.log('Could not save version (table might not exist):', versionError);
@@ -719,17 +723,33 @@ export default function AdminSettingsPage() {
                                         </div>
                                     </div>
                                 ) : (
-                                    <textarea
-                                        ref={termsEditorRef}
-                                        value={termsText}
-                                        onChange={(e) => setTermsText(e.target.value)}
-                                        placeholder="# Termos de Uso&#10;&#10;Digite os termos de uso aqui usando formatação Markdown...&#10;&#10;## 1. Aceitação&#10;Ao acessar a plataforma, você concorda com..."
-                                        rows={20}
-                                        className={`w-full px-4 py-4 rounded-xl border text-sm font-mono leading-relaxed resize-y ${isDark
-                                            ? 'bg-white/5 border-white/10 text-white placeholder-gray-500'
-                                            : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400'
-                                        } outline-none focus:ring-2 focus:ring-[#6C5DD3]/40`}
-                                    />
+                                    <>
+                                        <textarea
+                                            ref={termsEditorRef}
+                                            value={termsText}
+                                            onChange={(e) => setTermsText(e.target.value)}
+                                            placeholder="# Termos de Uso&#10;&#10;Digite os termos de uso aqui usando formatação Markdown...&#10;&#10;## 1. Aceitação&#10;Ao acessar a plataforma, você concorda com..."
+                                            rows={20}
+                                            className={`w-full px-4 py-4 rounded-t-xl border-x border-t text-sm font-mono leading-relaxed resize-y ${isDark
+                                                ? 'bg-white/5 border-white/10 text-white placeholder-gray-500 border-b-0'
+                                                : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 border-b-0'
+                                            } outline-none shadow-none focus-visible:outline-none focus:ring-0 focus:border-[#6C5DD3]`}
+                                        />
+                                        <div className={`flex flex-col md:flex-row items-center gap-2 p-3 rounded-b-xl border border-t-0 ${isDark ? 'bg-white/[0.02] border-white/10' : 'bg-gray-100/50 border-gray-200'}`}>
+                                            <div className="w-full relative group">
+                                                <input
+                                                    type="text"
+                                                    value={changeSummary}
+                                                    onChange={(e) => setChangeSummary(e.target.value)}
+                                                    placeholder="Resumo das mudanças (ex: Correção ortográfica, Adição cláusula de cancelamento)..."
+                                                    className={`w-full bg-transparent px-4 py-2 border-b-2 outline-none text-sm transition-all focus:border-[#6C5DD3] ${isDark ? 'text-gray-300 border-white/10 placeholder-gray-600' : 'text-gray-700 border-gray-300 placeholder-gray-400'}`}
+                                                />
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold uppercase tracking-widest text-[#6C5DD3] opacity-0 group-focus-within:opacity-100 transition-opacity">
+                                                    Opcional
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </>
                                 )}
 
                                 {/* Save Terms Button */}
@@ -796,6 +816,13 @@ export default function AdminSettingsPage() {
                                                             {new Date(version.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                                             {' · '}{version.created_by}
                                                         </p>
+                                                        {version.change_summary && (
+                                                            <div className={`mt-3 py-2 px-3 rounded-lg text-sm border-l-2 border-[#6C5DD3] ${isDark ? 'bg-white/5 text-gray-300' : 'bg-white text-gray-600 shadow-sm'}`}>
+                                                                <ul className="list-disc list-inside">
+                                                                    <li className="list-none text-xs leading-relaxed">{version.change_summary}</li>
+                                                                </ul>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     {!version.is_active && (
                                                         <button

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
 import { supabase } from '@/lib/supabase/client';
@@ -9,7 +9,7 @@ import { Header } from '@/components/Header';
 import {
     ArrowLeft, Sparkles, Loader2, Copy, Check, Search, Briefcase, UserCheck,
     BookOpen, Compass, MessageSquare, Zap, Heart, Users, Music, Video, Lightbulb,
-    Send, RotateCcw, Upload, Image as ImageIcon, X
+    Send, RotateCcw, Upload, Image as ImageIcon, X, Download, History
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { LoadingPhrases } from '@/components/LoadingPhrases';
@@ -237,13 +237,24 @@ export default function DynamicToolPage() {
     const [recentMessages, setRecentMessages] = useState<any[]>([]);
     const [notificationsOpen, setNotificationsOpen] = useState(false);
 
+    const [activeTab, setActiveTab] = useState<'novo' | 'historico'>('novo');
+    const [history, setHistory] = useState<any[]>([]);
+    const [loadingHistory, setLoadingHistory] = useState(false);
+
     const [formData, setFormData] = useState<Record<string, string | string[]>>({});
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [fileInputKey, setFileInputKey] = useState(Date.now());
     const [formError, setFormError] = useState<string | null>(null);
     const [generating, setGenerating] = useState(false);
     const [result, setResult] = useState('');
-    const [copied, setCopied] = useState(false);
+    const [copied, setCopied] = useState<string | boolean>(false);
+    
+    const contentRef = useRef<HTMLDivElement>(null);
+    const [pdfSettings, setPdfSettings] = useState({
+        logo: '',
+        footer: 'Documento gerado pelo App Profissão do Futuro.'
+    });
+    const [downloadingPDF, setDownloadingPDF] = useState(false);
 
     const config = TOOL_CONFIGS[toolId];
 
@@ -258,9 +269,25 @@ export default function DynamicToolPage() {
             } else {
                 setLoading(false);
                 fetchUnreadCount();
+                fetchSettings();
             }
         }
     }, [profile, themeLoading, router]);
+
+    const fetchSettings = async () => {
+        try {
+            const { data } = await supabase.from('platform_settings').select('value').eq('key', 'pdf_settings').single();
+            if (data?.value) {
+                const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+                setPdfSettings({
+                    logo: parsed.logo_url !== undefined ? parsed.logo_url : '',
+                    footer: parsed.footer_roteiro || 'Documento gerado pelo App Profissão do Futuro.'
+                });
+            }
+        } catch (e) {
+            setPdfSettings(prev => ({ ...prev, logo: '' }));
+        }
+    };
 
     async function fetchUnreadCount() {
         if (!profile?.id) return;
@@ -278,6 +305,26 @@ export default function DynamicToolPage() {
             .eq('is_read', false);
         if (count !== null) setUnreadCount(count);
     }
+
+    const fetchHistory = async () => {
+        if (!profile?.id) return;
+        setLoadingHistory(true);
+        const { data } = await supabase
+            .from('ai_content_history')
+            .select('*')
+            .eq('user_id', profile.id)
+            .eq('tool_type', toolId)
+            .order('created_at', { ascending: false });
+        
+        if (data) setHistory(data);
+        setLoadingHistory(false);
+    };
+
+    useEffect(() => {
+        if (activeTab === 'historico') {
+            fetchHistory();
+        }
+    }, [activeTab]);
 
     async function handleGenerate() {
         const missingRequired = config.fields
@@ -298,12 +345,28 @@ export default function DynamicToolPage() {
                 body: JSON.stringify({ toolId, data: formData }),
             });
 
-            if (!res.ok) throw new Error('Erro na API');
-
             const data = await res.json();
-            setResult(data.result || data.message || 'Resultado gerado com sucesso!');
+            
+            if (data.result || data.message) {
+                const generated = data.result || data.message;
+                setResult(generated);
+                
+                // Salvar no histórico
+                if (profile?.id) {
+                    await supabase.from('ai_content_history').insert([{
+                        user_id: profile.id,
+                        tool_type: toolId,
+                        input_data: formData,
+                        output_content: generated
+                    }]);
+                }
+            } else {
+                setResult(data.error || 'Erro ao gerar conteúdo. Tente novamente. Se o problema persistir atualize a página.');
+                console.error('API Error:', data);
+            }
         } catch (err) {
-            setResult('⚠️ **Ferramenta em fase de ativação!**\n\nEsta ferramenta está sendo conectada com a IA. Em breve ela vai funcionar 100%. Fique de olho nas atualizações! 🚀');
+            setResult('Erro de conexão. Verifique sua internet e tente novamente.');
+            console.error('Fetch Error:', err);
         } finally {
             setGenerating(false);
         }
@@ -313,6 +376,7 @@ export default function DynamicToolPage() {
         setFormData({});
         setResult('');
         setCopied(false);
+        setActiveTab('novo');
     }
 
     function copyToClipboard() {
@@ -320,6 +384,41 @@ export default function DynamicToolPage() {
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     }
+    
+    function copyHistoryToClipboard(content: string, id: string) {
+        navigator.clipboard.writeText(content);
+        setCopied(id as string);
+        setTimeout(() => setCopied(false), 2000);
+    }
+
+    const handleDownloadPDF = async () => {
+        if (!contentRef.current) return;
+        setDownloadingPDF(true);
+        
+        try {
+            const html2pdf = (await import('html2pdf.js')).default;
+            const element = contentRef.current;
+            element.classList.add('pdf-mode');
+
+            const opt: any = {
+                margin: [15, 15, 20, 15],
+                filename: `${config.title}_${new Date().getTime()}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            await html2pdf().set(opt).from(element).save();
+        } catch (error) {
+            console.error('Erro ao gerar PDF:', error);
+            alert('Erro ao gerar o PDF. Tente novamente.');
+        } finally {
+            if (contentRef.current) {
+                contentRef.current.classList.remove('pdf-mode');
+            }
+            setDownloadingPDF(false);
+        }
+    };
 
     if (loading || themeLoading) return null;
 
@@ -375,7 +474,6 @@ export default function DynamicToolPage() {
                     </div>
                 )}
 
-                {/* Back Button */}
                 <button
                     onClick={() => router.push('/dashboard/tools')}
                     className={`flex items-center gap-2 text-sm font-bold uppercase tracking-widest ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-[#1B1D21]'} transition-colors w-fit`}
@@ -384,7 +482,6 @@ export default function DynamicToolPage() {
                     Voltar para Ferramentas
                 </button>
 
-                {/* Tool Header */}
                 <div className="space-y-3">
                     <div className="flex items-center gap-3">
                         <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full border ${config.badgeColor}`}>
@@ -407,164 +504,223 @@ export default function DynamicToolPage() {
                     </div>
                 </div>
 
-                {/* Content area */}
-                {!result ? (
-                    <div className={`rounded-[2rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'} p-8 space-y-6 relative overflow-hidden`}>
-                        {generating && (
-                            <div className={`absolute inset-0 flex flex-col items-center justify-center gap-8 z-20 ${isDark ? 'bg-[#1A1D1F]/90' : 'bg-white/90'} backdrop-blur-sm animate-in fade-in duration-500`}>
-                                <div className="relative">
-                                    <div className="w-24 h-24 border-2 rounded-full animate-ping absolute inset-0" style={{ borderColor: `${config.color}33` }}></div>
-                                    <div className="w-24 h-24 border-t-2 rounded-full animate-spin relative z-10" style={{ borderColor: config.color }}></div>
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <Sparkles className="w-8 h-8 animate-pulse" style={{ color: config.color }} />
+                {/* Tabs */}
+                <div className="flex gap-2 mb-6">
+                    <button
+                        onClick={() => setActiveTab('novo')}
+                        className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all ${activeTab === 'novo' ? 'bg-[#6C5DD3] text-white shadow-lg' : isDark ? 'bg-[#1A1D1F] text-gray-400 hover:text-white hover:bg-white/5' : 'bg-white text-gray-500 hover:text-[#1B1D21] hover:bg-gray-50'}`}
+                    >
+                        <div className="flex items-center gap-2">
+                            <span>+</span>
+                            <span>Novo</span>
+                        </div>
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('historico')}
+                        className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all ${activeTab === 'historico' ? 'bg-[#6C5DD3] text-white shadow-lg' : isDark ? 'bg-[#1A1D1F] text-gray-400 hover:text-white hover:bg-white/5' : 'bg-white text-gray-500 hover:text-[#1B1D21] hover:bg-gray-50'}`}
+                    >
+                        <div className="flex items-center gap-2">
+                            <History size={16} />
+                            <span>Histórico</span>
+                        </div>
+                    </button>
+                </div>
+
+                {activeTab === 'novo' ? (
+                    !result ? (
+                        <div className={`rounded-[2rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'} p-8 space-y-6 relative overflow-hidden`}>
+                            {generating && (
+                                <div className={`absolute inset-0 flex flex-col items-center justify-center gap-8 z-20 ${isDark ? 'bg-[#1A1D1F]/90' : 'bg-white/90'} backdrop-blur-sm animate-in fade-in duration-500`}>
+                                    <div className="relative">
+                                        <div className="w-24 h-24 border-2 rounded-full animate-ping absolute inset-0" style={{ borderColor: `${config.color}33` }}></div>
+                                        <div className="w-24 h-24 border-t-2 rounded-full animate-spin relative z-10" style={{ borderColor: config.color }}></div>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <Sparkles className="w-8 h-8 animate-pulse" style={{ color: config.color }} />
+                                        </div>
+                                    </div>
+                                    <div className="text-center space-y-2">
+                                        <p className="text-lg font-black tracking-widest uppercase" style={{ color: config.color }}>Processando com IA</p>
+                                        <LoadingPhrases phrases={[
+                                            "Mapeando seu nicho e referências...",
+                                            "Ajustando ao seu perfil e objetivos...",
+                                            "Estruturando conteúdos e ideias...",
+                                            "Afinando as respostas e formatação...",
+                                            "Criando algo impossível de ignorar..."
+                                        ]} />
                                     </div>
                                 </div>
-                                <div className="text-center space-y-2">
-                                    <p className="text-lg font-black tracking-widest uppercase" style={{ color: config.color }}>Processando com IA</p>
-                                    <LoadingPhrases phrases={[
-                                        "Mapeando seu nicho e as melhores referências...",
-                                        "Personalizando os detalhes baseados nos seus limites e desejos...",
-                                        "Estruturando conteúdos e ideias magnéticas...",
-                                        "Revisando o tom de voz e o impacto da mensagem...",
-                                        "Finalizando um material feito para se destacar de verdade..."
-                                    ]} />
-                                </div>
-                            </div>
-                        )}
-                        <p className={`text-sm leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-                            {config.description}
-                        </p>
+                            )}
+                            <p className={`text-sm leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                                {config.description}
+                            </p>
 
-                        <div className="space-y-5">
-                            {config.fields.map((field) => (
-                                <div key={field.id} className="space-y-2">
-                                    <label className={`text-sm font-semibold ${isDark ? 'text-gray-200' : 'text-[#1B1D21]'}`}>
-                                        {field.label}
-                                        {field.required && <span className="text-red-400 ml-1">*</span>}
-                                    </label>
+                            <div className="space-y-5">
+                                {config.fields.map((field) => (
+                                    <div key={field.id} className="space-y-2">
+                                        <label className={`text-sm font-semibold ${isDark ? 'text-gray-200' : 'text-[#1B1D21]'}`}>
+                                            {field.label}
+                                            {field.required && <span className="text-red-400 ml-1">*</span>}
+                                        </label>
 
-                                    {field.type === 'text' && (
-                                        <input
-                                            type="text"
-                                            value={formData[field.id] || ''}
-                                            onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
-                                            placeholder={field.placeholder}
-                                            className={`w-full px-5 py-3.5 rounded-2xl border text-sm font-medium transition-all duration-200 outline-none ${isDark
-                                                ? 'bg-[#111315] border-white/10 text-white placeholder:text-gray-500 focus:border-[#6C5DD3]/50 focus:ring-2 focus:ring-[#6C5DD3]/10'
-                                                : 'bg-gray-50 border-gray-200 text-[#1B1D21] placeholder:text-gray-400 focus:border-[#6C5DD3]/50 focus:ring-2 focus:ring-[#6C5DD3]/10 focus:bg-white'
-                                                }`}
-                                        />
-                                    )}
+                                        {field.type === 'text' && (
+                                            <input
+                                                type="text"
+                                                value={formData[field.id] as string || ''}
+                                                onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
+                                                placeholder={field.placeholder}
+                                                className={`w-full px-5 py-3.5 rounded-2xl border text-sm font-medium transition-all duration-200 outline-none ${isDark
+                                                    ? 'bg-[#111315] border-white/10 text-white placeholder:text-gray-500 focus:border-[#6C5DD3]/50 focus:ring-2 focus:ring-[#6C5DD3]/10'
+                                                    : 'bg-gray-50 border-gray-200 text-[#1B1D21] placeholder:text-gray-400 focus:border-[#6C5DD3]/50 focus:ring-2 focus:ring-[#6C5DD3]/10 focus:bg-white'
+                                                    }`}
+                                            />
+                                        )}
 
-                                    {field.type === 'textarea' && (
-                                        <textarea
-                                            value={formData[field.id] || ''}
-                                            onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
-                                            placeholder={field.placeholder}
-                                            rows={4}
-                                            className={`w-full px-5 py-3.5 rounded-2xl border text-sm font-medium transition-all duration-200 outline-none resize-none ${isDark
-                                                ? 'bg-[#111315] border-white/10 text-white placeholder:text-gray-500 focus:border-[#6C5DD3]/50 focus:ring-2 focus:ring-[#6C5DD3]/10'
-                                                : 'bg-gray-50 border-gray-200 text-[#1B1D21] placeholder:text-gray-400 focus:border-[#6C5DD3]/50 focus:ring-2 focus:ring-[#6C5DD3]/10 focus:bg-white'
-                                                }`}
-                                        />
-                                    )}
+                                        {field.type === 'textarea' && (
+                                            <textarea
+                                                value={formData[field.id] as string || ''}
+                                                onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
+                                                placeholder={field.placeholder}
+                                                rows={4}
+                                                className={`w-full px-5 py-3.5 rounded-2xl border text-sm font-medium transition-all duration-200 outline-none resize-none ${isDark
+                                                    ? 'bg-[#111315] border-white/10 text-white placeholder:text-gray-500 focus:border-[#6C5DD3]/50 focus:ring-2 focus:ring-[#6C5DD3]/10'
+                                                    : 'bg-gray-50 border-gray-200 text-[#1B1D21] placeholder:text-gray-400 focus:border-[#6C5DD3]/50 focus:ring-2 focus:ring-[#6C5DD3]/10 focus:bg-white'
+                                                    }`}
+                                            />
+                                        )}
 
-                                    {field.type === 'select' && (
-                                        <div className="flex flex-wrap gap-2">
-                                            {field.options?.map((option) => (
-                                                <button
-                                                    key={option}
-                                                    onClick={() => setFormData({ ...formData, [field.id]: option })}
-                                                    className={`px-4 py-2.5 rounded-xl text-sm font-medium border transition-all duration-200 ${formData[field.id] === option
-                                                        ? 'border-[#6C5DD3] bg-[#6C5DD3]/10 text-[#6C5DD3] shadow-sm'
-                                                        : isDark
-                                                            ? 'border-white/10 bg-[#111315] text-gray-300 hover:border-white/20 hover:bg-white/5'
-                                                            : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300 hover:bg-gray-100'
-                                                        }`}
-                                                >
-                                                    {option}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
+                                        {field.type === 'select' && (
+                                            <div className="flex flex-wrap gap-2">
+                                                {field.options?.map((option) => (
+                                                    <button
+                                                        key={option}
+                                                        onClick={() => setFormData({ ...formData, [field.id]: option })}
+                                                        className={`px-4 py-2.5 rounded-xl text-sm font-medium border transition-all duration-200 ${formData[field.id] === option
+                                                            ? 'border-[#6C5DD3] bg-[#6C5DD3]/10 text-[#6C5DD3] shadow-sm'
+                                                            : isDark
+                                                                ? 'border-white/10 bg-[#111315] text-gray-300 hover:border-white/20 hover:bg-white/5'
+                                                                : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300 hover:bg-gray-100'
+                                                            }`}
+                                                    >
+                                                        {option}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
 
-                                    {field.type === 'image' && (
-                                        <div className={`mt-2 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center p-8 transition-colors ${isDark ? 'border-white/10 bg-[#111315] hover:border-[#6C5DD3]/50' : 'border-gray-200 bg-gray-50 hover:border-[#6C5DD3]/50'
-                                            }`}>
-                                            {formData[field.id] ? (
-                                                <div className="relative w-full max-w-sm rounded-[1rem] overflow-hidden shadow-lg border border-gray-200 dark:border-white/10 group mx-auto">
-                                                    <img src={formData[field.id] as string} alt="Preview" className="w-full h-auto object-cover max-h-64" />
-                                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
-                                                        <button
-                                                            onClick={() => setFormData({ ...formData, [field.id]: '' })}
-                                                            className="px-4 py-2 bg-red-500 rounded-xl text-white text-sm font-bold flex items-center gap-2 hover:bg-red-600 transition-colors shadow-lg"
-                                                        >
-                                                            <X size={16} />
-                                                            Remover Imagem
-                                                        </button>
+                                        {field.type === 'image' && (
+                                            <div className={`mt-2 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center p-8 transition-colors ${isDark ? 'border-white/10 bg-[#111315] hover:border-[#6C5DD3]/50' : 'border-gray-200 bg-gray-50 hover:border-[#6C5DD3]/50'
+                                                }`}>
+                                                {formData[field.id] ? (
+                                                    <div className="relative w-full max-w-sm rounded-[1rem] overflow-hidden shadow-lg border border-gray-200 dark:border-white/10 group mx-auto">
+                                                        <img src={formData[field.id] as string} alt="Preview" className="w-full h-auto object-cover max-h-64" />
+                                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                                                            <button
+                                                                onClick={() => setFormData({ ...formData, [field.id]: '' })}
+                                                                className="px-4 py-2 bg-red-500 rounded-xl text-white text-sm font-bold flex items-center gap-2 hover:bg-red-600 transition-colors shadow-lg"
+                                                            >
+                                                                <X size={16} />
+                                                                Remover Imagem
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 ${isDark ? 'bg-white/5 text-gray-400' : 'bg-white shadow-sm text-gray-500'}`}>
-                                                        <ImageIcon size={24} />
-                                                    </div>
-                                                    <p className={`text-sm font-semibold mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                                                        Clique para fazer upload ou arraste a imagem
-                                                    </p>
-                                                    <p className={`text-xs mb-5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                                        Envie prints (PNG, JPG ou WEBP) do seu portfólio. Múltiplos prints podem ser unidos em uma colagem.
-                                                    </p>
-                                                    <label className="cursor-pointer bg-[#6C5DD3] hover:bg-[#5b4fbe] text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors shadow-md">
-                                                        <Upload size={16} />
-                                                        Selecionar Imagem
-                                                        <input
-                                                            type="file"
-                                                            className="hidden"
-                                                            accept="image/png, image/jpeg, image/webp"
-                                                            onChange={(e) => {
-                                                                const file = e.target.files?.[0];
-                                                                if (file) {
-                                                                    const reader = new FileReader();
-                                                                    reader.onloadend = () => {
-                                                                        setFormData({ ...formData, [field.id]: reader.result as string });
-                                                                    };
-                                                                    reader.readAsDataURL(file);
-                                                                }
-                                                            }}
-                                                        />
-                                                    </label>
-                                                </>
-                                            )}
-                                        </div>
-                                    )}
-                                    {field.type === 'images' && (
-                                        <div className={`mt-2 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center p-8 transition-colors ${isDark ? 'border-white/10 bg-[#111315]' : 'border-gray-200 bg-gray-50'}`}>
-                                            {Array.isArray(formData[field.id]) && formData[field.id].length > 0 ? (
-                                                <div className="w-full">
-                                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
-                                                        {(formData[field.id] as string[]).map((imgUrl, idx) => (
-                                                            <div key={idx} className="relative w-full aspect-square rounded-[1rem] overflow-hidden shadow-lg border border-gray-200 dark:border-white/10 group">
-                                                                <img src={imgUrl} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
-                                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            const newImages = [...(formData[field.id] as string[])];
-                                                                            newImages.splice(idx, 1);
-                                                                            setFormData({ ...formData, [field.id]: newImages });
-                                                                        }}
-                                                                        className="p-3 bg-red-500 rounded-full text-white hover:bg-red-600 transition-colors shadow-lg"
-                                                                    >
-                                                                        <X size={16} />
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                    <div className="flex justify-center">
+                                                ) : (
+                                                    <>
+                                                        <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 ${isDark ? 'bg-white/5 text-gray-400' : 'bg-white shadow-sm text-gray-500'}`}>
+                                                            <ImageIcon size={24} />
+                                                        </div>
+                                                        <p className={`text-sm font-semibold mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                                                            Clique para fazer upload ou arraste a imagem
+                                                        </p>
+                                                        <p className={`text-xs mb-5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                                            Envie prints (PNG, JPG ou WEBP) do seu portfólio.
+                                                        </p>
                                                         <label className="cursor-pointer bg-[#6C5DD3] hover:bg-[#5b4fbe] text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors shadow-md">
                                                             <Upload size={16} />
-                                                            Adicionar Mais Prints
+                                                            Selecionar Imagem
+                                                            <input
+                                                                type="file"
+                                                                className="hidden"
+                                                                accept="image/png, image/jpeg, image/webp"
+                                                                onChange={(e) => {
+                                                                    const file = e.target.files?.[0];
+                                                                    if (file) {
+                                                                        const reader = new FileReader();
+                                                                        reader.onloadend = () => {
+                                                                            setFormData({ ...formData, [field.id]: reader.result as string });
+                                                                        };
+                                                                        reader.readAsDataURL(file);
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </label>
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
+                                        {field.type === 'images' && (
+                                            <div className={`mt-2 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center p-8 transition-colors ${isDark ? 'border-white/10 bg-[#111315]' : 'border-gray-200 bg-gray-50'}`}>
+                                                {Array.isArray(formData[field.id]) && formData[field.id].length > 0 ? (
+                                                    <div className="w-full">
+                                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+                                                            {(formData[field.id] as string[]).map((imgUrl, idx) => (
+                                                                <div key={idx} className="relative w-full aspect-square rounded-[1rem] overflow-hidden shadow-lg border border-gray-200 dark:border-white/10 group">
+                                                                    <img src={imgUrl} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
+                                                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                const newImages = [...(formData[field.id] as string[])];
+                                                                                newImages.splice(idx, 1);
+                                                                                setFormData({ ...formData, [field.id]: newImages });
+                                                                            }}
+                                                                            className="p-3 bg-red-500 rounded-full text-white hover:bg-red-600 transition-colors shadow-lg"
+                                                                        >
+                                                                            <X size={16} />
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                        <div className="flex justify-center">
+                                                            <label className="cursor-pointer bg-[#6C5DD3] hover:bg-[#5b4fbe] text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors shadow-md">
+                                                                <Upload size={16} />
+                                                                Adicionar Mais Prints
+                                                                <input
+                                                                    type="file"
+                                                                    className="hidden"
+                                                                    accept="image/png, image/jpeg, image/webp"
+                                                                    multiple
+                                                                    onChange={(e) => {
+                                                                        const files = Array.from(e.target.files || []);
+                                                                        if (files.length > 0) {
+                                                                            const promises = files.map(file => new Promise<string>((resolve) => {
+                                                                                const reader = new FileReader();
+                                                                                reader.onloadend = () => resolve(reader.result as string);
+                                                                                reader.readAsDataURL(file);
+                                                                            }));
+                                                                            Promise.all(promises).then(results => {
+                                                                                const existing = Array.isArray(formData[field.id]) ? formData[field.id] : [];
+                                                                                setFormData(prev => ({ ...prev, [field.id]: [...existing, ...results] }));
+                                                                            });
+                                                                        }
+                                                                    }}
+                                                                />
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 ${isDark ? 'bg-white/5 text-gray-400' : 'bg-white shadow-sm text-gray-500'}`}>
+                                                            <ImageIcon size={24} />
+                                                        </div>
+                                                        <p className={`text-sm font-semibold mb-1 text-center ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                                                            Clique para fazer upload ou arraste as imagens
+                                                        </p>
+                                                        <p className={`text-xs mb-5 text-center ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                                            Envie prints (PNG, JPG ou WEBP) do seu material ou portfólio.
+                                                        </p>
+                                                        <label className="cursor-pointer bg-[#6C5DD3] hover:bg-[#5b4fbe] text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors shadow-md">
+                                                            <Upload size={16} />
+                                                            Selecionar Imagens
                                                             <input
                                                                 type="file"
                                                                 className="hidden"
@@ -579,140 +735,154 @@ export default function DynamicToolPage() {
                                                                             reader.readAsDataURL(file);
                                                                         }));
                                                                         Promise.all(promises).then(results => {
-                                                                            const existing = Array.isArray(formData[field.id]) ? formData[field.id] : [];
-                                                                            setFormData(prev => ({ ...prev, [field.id]: [...existing, ...results] }));
+                                                                            setFormData(prev => ({ ...prev, [field.id]: results }));
                                                                         });
                                                                     }
                                                                 }}
                                                             />
                                                         </label>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 ${isDark ? 'bg-white/5 text-gray-400' : 'bg-white shadow-sm text-gray-500'}`}>
-                                                        <ImageIcon size={24} />
-                                                    </div>
-                                                    <p className={`text-sm font-semibold mb-1 text-center ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                                                        Clique para fazer upload ou arraste as imagens
-                                                    </p>
-                                                    <p className={`text-xs mb-5 text-center ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                                        Envie prints (PNG, JPG ou WEBP) do seu portfólio.
-                                                    </p>
-                                                    <label className="cursor-pointer bg-[#6C5DD3] hover:bg-[#5b4fbe] text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors shadow-md">
-                                                        <Upload size={16} />
-                                                        Selecionar Imagens
-                                                        <input
-                                                            type="file"
-                                                            className="hidden"
-                                                            accept="image/png, image/jpeg, image/webp"
-                                                            multiple
-                                                            onChange={(e) => {
-                                                                const files = Array.from(e.target.files || []);
-                                                                if (files.length > 0) {
-                                                                    const promises = files.map(file => new Promise<string>((resolve) => {
-                                                                        const reader = new FileReader();
-                                                                        reader.onloadend = () => resolve(reader.result as string);
-                                                                        reader.readAsDataURL(file);
-                                                                    }));
-                                                                    Promise.all(promises).then(results => {
-                                                                        setFormData(prev => ({ ...prev, [field.id]: results }));
-                                                                    });
-                                                                }
-                                                            }}
-                                                        />
-                                                    </label>
-                                                </>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-
-                        <div className="pt-4">
-                            <button
-                                onClick={handleGenerate}
-                                disabled={generating}
-                                className="w-full sm:w-auto px-8 py-4 rounded-2xl text-white font-bold text-sm uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
-                                style={{ backgroundColor: config.color }}
-                            >
-                                {generating ? (
-                                    <>
-                                        <Loader2 size={18} className="animate-spin" />
-                                        Gerando...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Sparkles size={18} />
-                                        Gerar com IA
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-                        {/* Result Card */}
-                        <div className={`rounded-[2rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'} p-8`}>
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center gap-3">
-                                    <div
-                                        className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
-                                        style={{ backgroundColor: config.color }}
-                                    >
-                                        <Sparkles size={18} />
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
-                                    <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>
-                                        Resultado
-                                    </h3>
-                                </div>
+                                ))}
+                            </div>
+
+                            <div className="pt-4">
                                 <button
-                                    onClick={copyToClipboard}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${isDark
-                                        ? 'bg-white/5 text-gray-300 hover:bg-white/10'
-                                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-                                        }`}
+                                    onClick={handleGenerate}
+                                    disabled={generating}
+                                    className="w-full sm:w-auto px-8 py-4 rounded-2xl text-white font-bold text-sm uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                                    style={{ backgroundColor: config.color }}
                                 >
-                                    {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-                                    {copied ? 'Copiado!' : 'Copiar'}
+                                    {generating ? (
+                                        <>
+                                            <Loader2 size={18} className="animate-spin" />
+                                            Gerando...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles size={18} />
+                                            Gerar com IA
+                                        </>
+                                    )}
                                 </button>
                             </div>
+                        </div>
+                    ) : (
+                        <div className={`rounded-[2rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'} p-4 sm:p-8`}>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+                                <div>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#6C5DD3] mb-1">CONTEÚDO GERADO</p>
+                                    <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>Seu conteúdo está pronto!</h3>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        onClick={handleDownloadPDF}
+                                        disabled={downloadingPDF}
+                                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${isDark
+                                            ? 'bg-white/5 text-gray-300 hover:bg-white/10'
+                                            : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
+                                            } disabled:opacity-50`}
+                                    >
+                                        {downloadingPDF ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                                        {downloadingPDF ? 'Gerando...' : 'Salvar PDF'}
+                                    </button>
+                                    <button
+                                        onClick={copyToClipboard}
+                                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${isDark
+                                            ? 'bg-white/5 text-gray-300 hover:bg-white/10'
+                                            : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
+                                            }`}
+                                    >
+                                        {copied === true ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                                        {copied === true ? 'Copiado' : 'Copiar'}
+                                    </button>
+                                    <button
+                                        onClick={handleReset}
+                                        className="bg-[#6C5DD3] hover:bg-[#5b4fbe] text-white flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-md hover:shadow-lg"
+                                    >
+                                        <Sparkles size={14} />
+                                        Novo Conteúdo
+                                    </button>
+                                </div>
+                            </div>
 
-                            <div className={`prose max-w-none ${isDark ? 'prose-invert' : ''} text-sm leading-relaxed
-                                [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:bg-transparent [&_pre]:p-0
-                                [&_code]:break-words [&_code]:whitespace-pre-wrap [&_code]:bg-transparent [&_code]:p-0`}>
-                                <ReactMarkdown>{result}</ReactMarkdown>
+                            <div className="bg-[#f8f9fa] dark:bg-[#111315] rounded-2xl p-4 sm:p-8" ref={contentRef}>
+                                {/* Header do PDF */}
+                                <div className="pdf-only hidden mb-8 pb-6 border-b border-gray-200">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            {pdfSettings?.logo && (
+                                                <img src={pdfSettings.logo} alt="Logo" className="max-h-8 object-contain" crossOrigin="anonymous" />
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div
+                                    className={`prose prose-sm lg:prose-base max-w-none ${isDark
+                                        ? 'prose-invert prose-p:text-gray-300 prose-headings:text-white prose-strong:text-white prose-li:text-gray-300'
+                                        : 'prose-p:text-gray-600 prose-headings:text-gray-900 prose-strong:text-gray-900 prose-li:text-gray-600'
+                                        }`}
+                                >
+                                    <ReactMarkdown>{result}</ReactMarkdown>
+                                </div>
+
+                                {/* Footer do PDF */}
+                                <div className="pdf-only hidden mt-12 pt-6 border-t border-gray-200">
+                                    <p className="text-center text-sm text-gray-500">{pdfSettings?.footer}</p>
+                                </div>
                             </div>
                         </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex flex-wrap gap-3">
-                            <button
-                                onClick={handleReset}
-                                className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold transition-all ${isDark
-                                    ? 'bg-[#1A1D1F] border border-white/10 text-gray-300 hover:bg-white/5'
-                                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-                                    }`}
-                            >
-                                <RotateCcw size={16} />
-                                Gerar novamente
-                            </button>
-                            <button
-                                onClick={() => router.push('/dashboard/tools')}
-                                className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold transition-all ${isDark
-                                    ? 'bg-[#1A1D1F] border border-white/10 text-gray-300 hover:bg-white/5'
-                                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-                                    }`}
-                            >
-                                <ArrowLeft size={16} />
-                                Voltar
-                            </button>
-                        </div>
+                    )
+                ) : (
+                    <div className="space-y-4">
+                        {loadingHistory ? (
+                            <div className="flex flex-col items-center justify-center py-20 gap-4">
+                                <Loader2 className="w-8 h-8 animate-spin text-[#6C5DD3]" />
+                                <p className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Carregando histórico...</p>
+                            </div>
+                        ) : !history || history.length === 0 ? (
+                            <div className={`flex flex-col items-center justify-center py-20 gap-4 rounded-[2rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'}`}>
+                                <div className={`w-16 h-16 rounded-full flex items-center justify-center ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
+                                    <History className={`w-8 h-8 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />
+                                </div>
+                                <p className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Nenhum conteúdo gerado ainda.</p>
+                            </div>
+                        ) : (
+                            history.map((item: any) => (
+                                <div key={item.id} className={`rounded-[2rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'} p-4 sm:p-8`}>
+                                    <div className="flex items-center justify-between mb-6">
+                                        <p className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                            Gerado em {new Date(item.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                        <button
+                                            onClick={() => copyHistoryToClipboard(item.output_content, item.id)}
+                                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${isDark
+                                                ? 'bg-white/5 text-gray-300 hover:bg-white/10'
+                                                : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
+                                                }`}
+                                        >
+                                            {copied === item.id ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                                            {copied === item.id ? 'Copiado!' : 'Copiar'}
+                                        </button>
+                                    </div>
+                                    <div className="bg-[#f8f9fa] dark:bg-[#111315] rounded-2xl p-4 sm:p-6 overflow-x-auto">
+                                        <div
+                                            className={`prose prose-sm lg:prose-base max-w-none ${isDark
+                                                ? 'prose-invert prose-p:text-gray-300 prose-headings:text-white prose-strong:text-white prose-li:text-gray-300'
+                                                : 'prose-p:text-gray-600 prose-headings:text-gray-900 prose-strong:text-gray-900 prose-li:text-gray-600'
+                                                }`}
+                                        >
+                                            <ReactMarkdown>{item.output_content}</ReactMarkdown>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 )}
-
-                {/* Bottom spacer */}
                 <div className="h-8"></div>
             </main>
         </div>

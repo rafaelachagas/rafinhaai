@@ -20,7 +20,9 @@ import {
     ChevronRight,
     Tag,
     Edit3,
-    FileText
+    FileText,
+    ChevronDown,
+    ChevronUp
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import ReactMarkdown from 'react-markdown';
@@ -57,6 +59,7 @@ export default function CRMPage() {
     const [savingNote, setSavingNote] = useState(false);
     const [termsHistory, setTermsHistory] = useState<any[]>([]);
     const [loadingTermsHistory, setLoadingTermsHistory] = useState(false);
+    const [showTermsHistory, setShowTermsHistory] = useState(false);
 
     useEffect(() => {
         if (!themeLoading && (!profile || (profile.role !== 'admin' && profile.role !== 'moderator'))) {
@@ -127,6 +130,7 @@ export default function CRMPage() {
         setLoadingTermsHistory(true);
         setUserNotes([]);
         setTermsHistory([]);
+        setShowTermsHistory(false);
 
         // Fetch Notes
         const { data } = await supabase
@@ -439,26 +443,46 @@ export default function CRMPage() {
                                 {/* Historico de Termos */}
                                 {termsHistory.length > 0 && (
                                     <div className="mt-4">
-                                        <p className={`text-[10px] font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                            Histórico de Aceite dos Termos
-                                        </p>
-                                        <div className={`space-y-2 max-h-32 overflow-y-auto pr-2 rounded-xl p-3 border ${isDark ? 'bg-[#0F0F0F] border-white/10' : 'bg-gray-50 border-gray-100'}`}>
-                                            {loadingTermsHistory ? (
-                                                <div className="flex justify-center p-2"><Loader2 className="w-4 h-4 animate-spin text-[#FF754C]" /></div>
+                                        <button 
+                                            onClick={() => setShowTermsHistory(!showTermsHistory)}
+                                            className={`w-full flex items-center justify-between p-3 rounded-xl border transition-colors ${
+                                                isDark 
+                                                    ? 'bg-white/5 border-white/10 hover:bg-white/10' 
+                                                    : 'bg-white border-gray-100 hover:bg-gray-50'
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <FileText size={16} className={isDark ? 'text-gray-400' : 'text-gray-500'} />
+                                                <span className={`text-xs font-bold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                                                    Histórico de Aceites ({termsHistory.length})
+                                                </span>
+                                            </div>
+                                            {showTermsHistory ? (
+                                                <ChevronUp size={16} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
                                             ) : (
-                                                termsHistory.map((hist, idx) => (
-                                                    <div key={hist.id} className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-2">
-                                                            <FileText size={14} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
-                                                            <span className={`text-xs font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Versão {hist.version}</span>
-                                                        </div>
-                                                        <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                                            {new Date(hist.accepted_at).toLocaleDateString()}
-                                                        </span>
-                                                    </div>
-                                                ))
+                                                <ChevronDown size={16} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
                                             )}
-                                        </div>
+                                        </button>
+                                        
+                                        {showTermsHistory && (
+                                            <div className={`mt-2 space-y-2 max-h-40 overflow-y-auto pr-2 rounded-xl p-3 border ${isDark ? 'bg-[#0F0F0F] border-white/10' : 'bg-gray-50 border-gray-100'}`}>
+                                                {loadingTermsHistory ? (
+                                                    <div className="flex justify-center p-2"><Loader2 className="w-4 h-4 animate-spin text-[#FF754C]" /></div>
+                                                ) : (
+                                                    termsHistory.map((hist, idx) => (
+                                                        <div key={hist.id} className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-2">
+                                                                <FileText size={14} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
+                                                                <span className={`text-xs font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Versão {hist.version}</span>
+                                                            </div>
+                                                            <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                                                {new Date(hist.accepted_at).toLocaleString()}
+                                                            </span>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>

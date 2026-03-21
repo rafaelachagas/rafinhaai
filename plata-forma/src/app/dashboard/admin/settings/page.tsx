@@ -264,6 +264,11 @@ export default function AdminSettingsPage() {
     };
 
     const handleSaveTerms = async () => {
+        if (!changeSummary.trim()) {
+            alert('Por favor, descreva o que mudou nesta versão (obrigatório) antes de salvar os termos.');
+            return;
+        }
+
         setTermsSaving(true);
         try {
             // 1. Save active terms
@@ -730,27 +735,30 @@ export default function AdminSettingsPage() {
                                             onChange={(e) => setTermsText(e.target.value)}
                                             placeholder="# Termos de Uso&#10;&#10;Digite os termos de uso aqui usando formatação Markdown...&#10;&#10;## 1. Aceitação&#10;Ao acessar a plataforma, você concorda com..."
                                             rows={20}
-                                            className={`w-full px-4 py-4 rounded-t-xl border-x border-t text-sm font-mono leading-relaxed resize-y ${isDark
-                                                ? 'bg-white/5 border-white/10 text-white placeholder-gray-500 border-b-0'
-                                                : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 border-b-0'
-                                            } outline-none shadow-none focus-visible:outline-none focus:ring-0 focus:border-[#6C5DD3]`}
+                                            className={`w-full px-4 py-4 rounded-xl border text-sm font-mono leading-relaxed resize-y ${isDark
+                                                ? 'bg-white/5 border-white/10 text-white placeholder-gray-500'
+                                                : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400'
+                                            } outline-none focus:ring-2 focus:ring-[#6C5DD3]/40`}
                                         />
-                                        <div className={`flex flex-col md:flex-row items-center gap-2 p-3 rounded-b-xl border border-t-0 ${isDark ? 'bg-white/[0.02] border-white/10' : 'bg-gray-100/50 border-gray-200'}`}>
-                                            <div className="w-full relative group">
-                                                <input
-                                                    type="text"
-                                                    value={changeSummary}
-                                                    onChange={(e) => setChangeSummary(e.target.value)}
-                                                    placeholder="Resumo das mudanças (ex: Correção ortográfica, Adição cláusula de cancelamento)..."
-                                                    className={`w-full bg-transparent px-4 py-2 border-b-2 outline-none text-sm transition-all focus:border-[#6C5DD3] ${isDark ? 'text-gray-300 border-white/10 placeholder-gray-600' : 'text-gray-700 border-gray-300 placeholder-gray-400'}`}
-                                                />
-                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold uppercase tracking-widest text-[#6C5DD3] opacity-0 group-focus-within:opacity-100 transition-opacity">
-                                                    Opcional
-                                                </div>
-                                            </div>
-                                        </div>
                                     </>
                                 )}
+
+                                
+                                <div className="mt-8 space-y-2">
+                                    <label className={`block text-xs font-bold uppercase tracking-widest ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                        O que mudou nesta versão? <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={changeSummary}
+                                        onChange={(e) => setChangeSummary(e.target.value)}
+                                        placeholder="Ex: Correção ortográfica, Adicionada cláusula de cancelamento de 15 dias..."
+                                        className={`w-full px-4 py-4 rounded-xl border text-sm font-medium ${isDark ? 'bg-[#0F0F0F] border-white/10 text-white placeholder-gray-600 focus:border-[#6C5DD3] focus:ring-1 focus:ring-[#6C5DD3]' : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:border-[#6C5DD3] focus:ring-1 focus:ring-[#6C5DD3]'} outline-none transition-all`}
+                                    />
+                                    <p className={`text-[11px] ${isDark ? 'text-gray-500' : 'text-gray-400'} mt-1`}>
+                                        Esse resumo ficará salvo no histórico para a equipe ou em caso de perícia.
+                                    </p>
+                                </div>
 
                                 {/* Save Terms Button */}
                                 <div className="flex items-center justify-between mt-6">
@@ -762,12 +770,12 @@ export default function AdminSettingsPage() {
                                     </div>
                                     <button
                                         onClick={handleSaveTerms}
-                                        disabled={termsSaving}
+                                        disabled={termsSaving || !changeSummary.trim()}
                                         className={`flex items-center gap-3 px-8 py-3 rounded-2xl font-bold text-sm uppercase tracking-widest transition-all shadow-md ${
                                             termsSaved
                                                 ? 'bg-emerald-500 text-white shadow-emerald-500/20'
                                                 : 'bg-gradient-to-r from-[#6C5DD3] to-[#8B5CF6] text-white hover:scale-[1.02] shadow-[#6C5DD3]/20'
-                                        } disabled:opacity-50`}
+                                        } disabled:opacity-50 disabled:cursor-not-allowed`}
                                     >
                                         {termsSaving ? <Loader2 size={16} className="animate-spin" /> : termsSaved ? <Check size={16} /> : <Save size={16} />}
                                         {termsSaving ? 'Salvando...' : termsSaved ? 'Salvo!' : 'Salvar Termos'}

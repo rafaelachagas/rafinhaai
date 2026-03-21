@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useTheme } from '@/context/ThemeContext';
 import { supabase } from '@/lib/supabase/client';
 import { Phone, Check, Loader2, AlertCircle, X } from 'lucide-react';
+import PhoneInput, { isPossiblePhoneNumber } from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 
 export function PhonePopup({ onClose }: { onClose: () => void }) {
     const { profile, isDark, refreshProfile } = useTheme();
@@ -11,26 +13,11 @@ export function PhonePopup({ onClose }: { onClose: () => void }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Format phone number as user types
-    const formatPhone = (value: string) => {
-        const digits = value.replace(/\D/g, '');
-        if (digits.length <= 2) return digits;
-        if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-        if (digits.length <= 11) return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-        return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
-    };
-
-    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const formatted = formatPhone(e.target.value);
-        setPhone(formatted);
-    };
-
     const handleSave = async () => {
         if (!profile) return;
         
-        const digits = phone.replace(/\D/g, '');
-        if (digits.length < 10 || digits.length > 11) {
-            setError('Digite um número de telefone válido com DDD.');
+        if (!phone || !isPossiblePhoneNumber(phone)) {
+            setError('Digite um número de telefone válido com DDI e DDD.');
             return;
         }
 
@@ -91,25 +78,34 @@ export function PhonePopup({ onClose }: { onClose: () => void }) {
 
                     <div>
                         <label className={`block text-xs font-bold uppercase tracking-widest mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                            Telefone com DDD
+                            Telefone com DDD (Opcional: outro país)
                         </label>
-                        <input
-                            type="tel"
+                        <PhoneInput
+                            international
+                            defaultCountry="BR"
                             value={phone}
-                            onChange={handlePhoneChange}
-                            placeholder="(11) 99999-9999"
-                            maxLength={16}
+                            onChange={(val) => setPhone((val as string) || '')}
                             className={`w-full px-4 py-4 rounded-xl border text-lg font-medium tracking-wider ${isDark
-                                ? 'bg-white/5 border-white/10 text-white placeholder-gray-500 focus:border-[#6C5DD3]'
-                                : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:border-[#6C5DD3]'
-                            } outline-none focus:ring-2 focus:ring-[#6C5DD3]/40 transition-all`}
-                            autoFocus
+                                ? 'PhoneInputDark bg-white/5 border-white/10 text-white placeholder-gray-500 focus-within:border-[#6C5DD3]'
+                                : 'PhoneInputLight bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus-within:border-[#6C5DD3]'
+                            } outline-none focus-within:ring-2 focus-within:ring-[#6C5DD3]/40 transition-all`}
                         />
+                        <style dangerouslySetInnerHTML={{__html: `
+                            .PhoneInputInput {
+                                background: transparent !important;
+                                border: none !important;
+                                outline: none !important;
+                                color: inherit !important;
+                            }
+                            .PhoneInputCountry {
+                                margin-right: 12px;
+                            }
+                        `}} />
                     </div>
 
                     <button
                         onClick={handleSave}
-                        disabled={loading || phone.replace(/\D/g, '').length < 10}
+                        disabled={loading || !phone || !isPossiblePhoneNumber(phone)}
                         className="w-full bg-[#6C5DD3] hover:bg-[#5B4EC2] text-white py-4 rounded-2xl font-bold transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[#6C5DD3]/20"
                     >
                         {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Check size={20} /> Salvar e Continuar</>}

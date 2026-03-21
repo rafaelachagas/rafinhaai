@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { Header } from '@/components/Header';
 import { Camera, User, Lock, Save, AlertCircle, CheckCircle2 } from 'lucide-react';
+import PhoneInput, { isPossiblePhoneNumber } from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 import Image from 'next/image';
 
 export default function SettingsPage() {
@@ -130,27 +132,14 @@ export default function SettingsPage() {
         }
     };
 
-    const formatPhone = (value: string) => {
-        const digits = value.replace(/\D/g, '');
-        if (digits.length <= 2) return digits;
-        if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-        if (digits.length <= 11) return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-        return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
-    };
-
-    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setPhone(formatPhone(e.target.value));
-    };
-
     const handleUpdateProfile = async () => {
         if (!fullName || fullName.length < 3) {
             showMessage('error', 'O nome deve ter pelo menos 3 caracteres.');
             return;
         }
 
-        const phoneDigits = phone.replace(/\D/g, '');
-        if (phoneDigits && (phoneDigits.length < 10 || phoneDigits.length > 11)) {
-            showMessage('error', 'O telefone deve conter DDD e ser válido.');
+        if (phone && !isPossiblePhoneNumber(phone)) {
+            showMessage('error', 'O telefone deve conter DDI e ser válido.');
             return;
         }
 
@@ -301,14 +290,27 @@ export default function SettingsPage() {
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-gray-400 mb-2">Telefone com DDD</label>
-                                <input
-                                    type="tel"
+                                <PhoneInput
+                                    international
+                                    defaultCountry="BR"
                                     value={phone}
-                                    onChange={handlePhoneChange}
-                                    className={`w-full px-4 py-3 rounded-2xl border ${isDark ? 'bg-[#0F0F0F] border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'} focus:outline-none focus:border-[#6C5DD3] transition-colors`}
-                                    placeholder="(11) 99999-9999"
-                                    maxLength={16}
+                                    onChange={(val) => setPhone((val as string) || '')}
+                                    className={`w-full px-4 py-3 rounded-2xl border ${isDark
+                                        ? 'PhoneInputDark bg-[#0F0F0F] border-white/10 text-white placeholder-gray-500 focus-within:border-[#6C5DD3]'
+                                        : 'PhoneInputLight bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus-within:border-[#6C5DD3]'
+                                    } outline-none focus-within:ring-2 focus-within:ring-[#6C5DD3]/40 transition-colors`}
                                 />
+                                <style dangerouslySetInnerHTML={{__html: `
+                                    .PhoneInputInput {
+                                        background: transparent !important;
+                                        border: none !important;
+                                        outline: none !important;
+                                        color: inherit !important;
+                                    }
+                                    .PhoneInputCountry {
+                                        margin-right: 12px;
+                                    }
+                                `}} />
                             </div>
                         </div>
                         <button

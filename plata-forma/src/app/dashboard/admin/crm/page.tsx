@@ -22,7 +22,8 @@ import {
     Edit3,
     FileText,
     ChevronDown,
-    ChevronUp
+    ChevronUp,
+    Eye
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import ReactMarkdown from 'react-markdown';
@@ -60,6 +61,7 @@ export default function CRMPage() {
     const [termsHistory, setTermsHistory] = useState<any[]>([]);
     const [loadingTermsHistory, setLoadingTermsHistory] = useState(false);
     const [showTermsHistory, setShowTermsHistory] = useState(false);
+    const [selectedTermReceipt, setSelectedTermReceipt] = useState<any | null>(null);
 
     useEffect(() => {
         if (!themeLoading && (!profile || (profile.role !== 'admin' && profile.role !== 'moderator'))) {
@@ -149,7 +151,17 @@ export default function CRMPage() {
             .eq('user_id', u.id)
             .order('accepted_at', { ascending: false });
 
-        if (tHist) setTermsHistory(tHist);
+        if (tHist && tHist.length > 0) {
+            const { data: tVersions } = await supabase.from('terms_versions').select('version, text');
+            const historyWithText = tHist.map(h => {
+                const tv = tVersions?.find(v => v.version === h.version);
+                return { ...h, text: tv?.text || 'Texto desta versão não encontrado no banco de dados.' };
+            });
+            setTermsHistory(historyWithText);
+        } else {
+            setTermsHistory([]);
+        }
+        
         setLoadingTermsHistory(false);
     };
 
@@ -470,14 +482,23 @@ export default function CRMPage() {
                                                     <div className="flex justify-center p-2"><Loader2 className="w-4 h-4 animate-spin text-[#FF754C]" /></div>
                                                 ) : (
                                                     termsHistory.map((hist, idx) => (
-                                                        <div key={hist.id} className="flex items-center justify-between">
-                                                            <div className="flex items-center gap-2">
-                                                                <FileText size={14} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
-                                                                <span className={`text-xs font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Versão {hist.version}</span>
+                                                        <div key={hist.id} className={`flex items-center justify-between p-2 rounded-lg border group ${isDark ? 'border-white/5 bg-white/5 hover:bg-white/10' : 'border-gray-100 bg-white hover:bg-gray-50'}`}>
+                                                            <div className="flex flex-col">
+                                                                <div className="flex items-center gap-1.5 mb-0.5">
+                                                                    <FileText size={12} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
+                                                                    <span className={`text-[11px] font-bold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Versão {hist.version}</span>
+                                                                </div>
+                                                                <span className={`text-[9px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                                                    {new Date(hist.accepted_at).toLocaleString()}
+                                                                </span>
                                                             </div>
-                                                            <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                                                {new Date(hist.accepted_at).toLocaleString()}
-                                                            </span>
+                                                            <button 
+                                                                onClick={() => setSelectedTermReceipt(hist)}
+                                                                className="p-1.5 rounded-md bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-colors"
+                                                                title="Ver Documento do Aceite"
+                                                            >
+                                                                <Eye size={14} />
+                                                            </button>
                                                         </div>
                                                     ))
                                                 )}
@@ -560,6 +581,61 @@ export default function CRMPage() {
                                 </div>
                             </div>
 
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Term Receipt Document Modal */}
+            {selectedTermReceipt && selectedUser && (
+                <div className="fixed inset-0 z-[100] flex justify-center items-center p-4 sm:p-6">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setSelectedTermReceipt(null)} />
+                    
+                    <div className={`relative w-full max-w-4xl max-h-[90vh] flex flex-col rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in duration-300 ${isDark ? 'bg-[#1B1D21] border border-white/10' : 'bg-white'}`}>
+                        {/* Header do Certificado */}
+                        <div className={`p-6 border-b flex items-start justify-between ${isDark ? 'border-white/10 bg-[#1B1D21]' : 'border-gray-100 bg-white'}`}>
+                            <div>
+                                <h2 className={`text-xl font-bold flex items-center gap-2 ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>
+                                    <FileText size={24} className="text-blue-500" />
+                                    Certificado Digital de Aceite
+                                </h2>
+                                <p className={`mt-1 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                    Comprovante de consentimento eletrônico dos Termos de Uso e Política de Privacidade.
+                                </p>
+                            </div>
+                            <button onClick={() => setSelectedTermReceipt(null)} className={`p-2 rounded-full transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}>
+                                <XCircle size={24} />
+                            </button>
+                        </div>
+
+                        {/* Dados da Assinatura */}
+                        <div className={`p-6 border-b flex flex-wrap gap-6 ${isDark ? 'bg-white/5 border-white/10' : 'bg-blue-50 border-blue-100'}`}>
+                            <div className="flex-1 min-w-[200px]">
+                                <span className={`block text-[10px] font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-gray-500' : 'text-blue-600/60'}`}>Usuário (Signatário)</span>
+                                <p className={`font-bold ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>{selectedUser.full_name || 'Usuário Não Identificado'}</p>
+                                <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{selectedUser.email}</p>
+                            </div>
+                            <div className="flex-1 min-w-[200px]">
+                                <span className={`block text-[10px] font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-gray-500' : 'text-blue-600/60'}`}>Identificadores</span>
+                                <p className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>ID: {selectedUser.id}</p>
+                                <p className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Telefone: {selectedUser.phone || 'Não Arquivado'}</p>
+                            </div>
+                            <div className="flex-1 min-w-[200px]">
+                                <span className={`block text-[10px] font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-gray-500' : 'text-blue-600/60'}`}>Dados do Aceite</span>
+                                <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>Versão do Documento: {selectedTermReceipt.version}</p>
+                                <p className={`text-xs ${isDark ? 'text-green-400' : 'text-green-600'} font-bold mt-1 tracking-wider`}>ACEITO EM: {new Date(selectedTermReceipt.accepted_at).toLocaleString()}</p>
+                            </div>
+                        </div>
+
+                        {/* Corpo do Documento */}
+                        <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-black/5 dark:bg-black/50">
+                            <div className={`mx-auto max-w-3xl p-8 border rounded-lg shadow-sm ${isDark ? 'bg-[#0F0F0F] border-white/5' : 'bg-white border-gray-200'}`}>
+                                <div className="mb-6 pb-6 border-b border-dashed border-gray-300 dark:border-gray-700 text-center">
+                                    <h3 className={`text-lg font-bold uppercase tracking-widest ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Cópia Fiel do Documento</h3>
+                                </div>
+                                <div className={`prose prose-sm max-w-none ${isDark ? 'prose-invert prose-p:text-gray-300' : 'prose-gray prose-p:text-gray-600'}`}>
+                                    <ReactMarkdown>{selectedTermReceipt.text}</ReactMarkdown>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

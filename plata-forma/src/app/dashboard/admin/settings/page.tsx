@@ -148,11 +148,26 @@ export default function AdminSettingsPage() {
         }
     }, [profile, themeLoading, router]);
 
+    // Carrega termos APENAS na primeira vez também, para não perder edições ao trocar de aba interna
     useEffect(() => {
-        if (activeTab === 'terms') {
+        if (activeTab === 'terms' && !termsText) {
             loadTerms();
         }
     }, [activeTab]);
+
+    // Cache rascunhos em localStorage
+    useEffect(() => {
+        // Só salva o rascunho se não for o valor inicial vazio
+        if (settings !== DEFAULT_SETTINGS) {
+            localStorage.setItem('admin_pdf_settings_draft', JSON.stringify(settings));
+        }
+    }, [settings]);
+
+    useEffect(() => {
+        if (termsText) {
+            localStorage.setItem('admin_terms_draft', termsText);
+        }
+    }, [termsText]);
 
     const loadSettings = async () => {
         try {
@@ -162,7 +177,12 @@ export default function AdminSettingsPage() {
                 .eq('key', 'pdf_settings')
                 .single();
 
-            if (data?.value) {
+            const draft = localStorage.getItem('admin_pdf_settings_draft');
+            if (draft) {
+                const parsedDraft = JSON.parse(draft);
+                setSettings({ ...DEFAULT_SETTINGS, ...parsedDraft });
+                if (parsedDraft.logo_url) setLogoPreview(parsedDraft.logo_url);
+            } else if (data?.value) {
                 const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
                 setSettings({ ...DEFAULT_SETTINGS, ...parsed });
                 if (parsed.logo_url) setLogoPreview(parsed.logo_url);
@@ -175,14 +195,19 @@ export default function AdminSettingsPage() {
     const loadTerms = async () => {
         setTermsLoading(true);
         try {
-            const { data } = await supabase
-                .from('app_settings')
-                .select('value')
-                .eq('key', 'terms_of_use')
-                .single();
+            const draft = localStorage.getItem('admin_terms_draft');
+            if (draft) {
+                setTermsText(draft);
+            } else {
+                const { data } = await supabase
+                    .from('app_settings')
+                    .select('value')
+                    .eq('key', 'terms_of_use')
+                    .single();
 
-            if (data?.value?.text) {
-                setTermsText(data.value.text);
+                if (data?.value?.text) {
+                    setTermsText(data.value.text);
+                }
             }
         } catch (error) {
             console.log('No terms found, using empty');
@@ -222,6 +247,7 @@ export default function AdminSettingsPage() {
 
             if (error) throw error;
             setSaved(true);
+            localStorage.removeItem('admin_pdf_settings_draft');
             setTimeout(() => setSaved(false), 3000);
         } catch (error) {
             console.error('Error saving settings:', error);
@@ -275,6 +301,8 @@ export default function AdminSettingsPage() {
                     .from('profiles')
                     .update({ terms_accepted_at: null })
                     .neq('role', 'admin');
+
+                localStorage.removeItem('admin_terms_draft');
 
             } catch (versionError) {
                 console.log('Could not save version (table might not exist):', versionError);

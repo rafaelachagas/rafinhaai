@@ -218,17 +218,21 @@ export default function AdminSettingsPage() {
     const loadTermsVersions = async () => {
         setLoadingVersions(true);
         try {
-            const { data } = await supabase
+            const { data, error } = await supabase
                 .from('terms_versions')
                 .select('*')
                 .order('version', { ascending: false })
                 .limit(20);
 
+            if (error) console.error("Error loading versions:", error);
+            
             if (data) {
                 setTermsVersions(data);
+            } else {
+                setTermsVersions([]);
             }
         } catch (error) {
-            console.log('terms_versions table might not exist yet');
+            console.error('Exception loading versions:', error);
             setTermsVersions([]);
         }
         setLoadingVersions(false);
@@ -278,23 +282,30 @@ export default function AdminSettingsPage() {
                     .select('version')
                     .order('version', { ascending: false })
                     .limit(1)
-                    .single();
+                    .maybeSingle();
 
                 const nextVersion = (maxVer?.version || 0) + 1;
 
-                await supabase.from('terms_versions').insert({
+                const { error: insertError } = await supabase.from('terms_versions').insert({
                     version: nextVersion,
                     text: termsText,
                     created_by: profile?.email || 'admin',
                     is_active: true,
                     created_at: new Date().toISOString()
                 });
+                
+                if (insertError) console.error("Error inserting version:", insertError);
 
                 // Mark previous versions as inactive
-                await supabase
+                const { error: updateError } = await supabase
                     .from('terms_versions')
                     .update({ is_active: false })
                     .neq('version', nextVersion);
+                    
+                if (updateError) console.error("Error updating old versions:", updateError);
+
+                // Reload versions so the new one appears immediately
+                loadTermsVersions();
 
                 // 3. Reset terms_accepted_at for all users to force re-acceptance
                 await supabase
@@ -759,8 +770,8 @@ export default function AdminSettingsPage() {
                                     ) : termsVersions.length === 0 ? (
                                         <div className={`text-center py-10 rounded-xl ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
                                             <History className={`w-10 h-10 mx-auto mb-3 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} />
-                                            <p className="text-sm text-gray-400">Nenhuma versão salva ainda.</p>
-                                            <p className="text-xs text-gray-500 mt-1">A tabela <code className="text-[#6C5DD3]">terms_versions</code> precisa ser criada no Supabase.</p>
+                                            <p className="text-sm font-bold opacity-80 mb-1">Nenhuma versão salva ainda.</p>
+                                            <p className="text-xs text-gray-500">Salve seus termos de uso para registrar a primeira versão no histórico.</p>
                                         </div>
                                     ) : (
                                         <div className="space-y-3 max-h-[500px] overflow-y-auto">

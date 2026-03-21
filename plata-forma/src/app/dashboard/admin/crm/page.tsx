@@ -46,7 +46,6 @@ export default function CRMPage() {
     const [users, setUsers] = useState<Profile[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [activeTab, setActiveTab] = useState<'funil' | 'configs'>('funil');
 
     // Ficha de Aluno (Modal) states
     const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
@@ -55,11 +54,6 @@ export default function CRMPage() {
     const [newNote, setNewNote] = useState('');
     const [newTags, setNewTags] = useState(''); // comma separated
     const [savingNote, setSavingNote] = useState(false);
-
-    // Term configs
-    const [termsText, setTermsText] = useState('');
-    const [savingTerms, setSavingTerms] = useState(false);
-    const [termsMessage, setTermsMessage] = useState('');
 
     useEffect(() => {
         if (!themeLoading && (!profile || (profile.role !== 'admin' && profile.role !== 'moderator'))) {
@@ -81,40 +75,7 @@ export default function CRMPage() {
             setUsers(profilesData as Profile[]);
         }
 
-        // Fetch terms
-        const { data: termsData } = await supabase
-            .from('app_settings')
-            .select('value')
-            .eq('key', 'terms_of_use')
-            .single();
-
-        if (termsData?.value?.text) {
-            setTermsText(termsData.value.text);
-        } else {
-            setTermsText('# Termos de Uso Padrão\n\nConfigure seus termos aqui.');
-        }
-
         setLoading(false);
-    };
-
-    const handleSaveTerms = async () => {
-        setSavingTerms(true);
-        setTermsMessage('');
-        const { error } = await supabase
-            .from('app_settings')
-            .upsert({
-                key: 'terms_of_use',
-                value: { text: termsText },
-                updated_at: new Date().toISOString()
-            });
-
-        if (!error) {
-            setTermsMessage('Termos atualizados com sucesso! Próximos logins verão o popup atualizado.');
-        } else {
-            setTermsMessage('Erro ao salvar os termos. Contate o suporte.');
-        }
-        setSavingTerms(false);
-        setTimeout(() => setTermsMessage(''), 5000);
     };
 
     const formatTime = (seconds?: number) => {
@@ -236,25 +197,8 @@ export default function CRMPage() {
                     </div>
                 </div>
 
-                {/* Tabs */}
-                <div className={`flex items-center gap-2 border-b ${isDark ? 'border-white/10' : 'border-gray-200'} pb-[-1px]`}>
-                    <button
-                        onClick={() => setActiveTab('funil')}
-                        className={`px-6 py-4 font-bold text-sm transition-all border-b-2 ${activeTab === 'funil' ? `border-[#FF754C] text-[#FF754C]` : `border-transparent ${isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}`}
-                    >
-                        <div className="flex items-center gap-2"><Users size={16} /> Funil & Alunos</div>
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('configs')}
-                        className={`px-6 py-4 font-bold text-sm transition-all border-b-2 ${activeTab === 'configs' ? `border-[#FF754C] text-[#FF754C]` : `border-transparent ${isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}`}
-                    >
-                        <div className="flex items-center gap-2"><Settings size={16} /> Configs (Termos de Uso)</div>
-                    </button>
-                </div>
-
-                {activeTab === 'funil' && (
-                    <div className="space-y-6 animate-in fade-in duration-300">
-                        {/* Stats Grid */}
+                <div className="space-y-6 animate-in fade-in duration-300">
+                    {/* Stats Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             {[
                                 { label: 'Oportunidades Quentes (Upsell)', value: users.filter(u => getHealthState(u).upsell).length, icon: Flame, color: 'text-orange-500' },
@@ -401,52 +345,7 @@ export default function CRMPage() {
                             </div>
                         </div>
                     </div>
-                )}
-
-                {activeTab === 'configs' && (
-                    <div className="space-y-6 animate-in fade-in duration-300">
-                        <div className={`p-8 rounded-[2.5rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'}`}>
-                            <h2 className="text-xl font-bold mb-2">Editor dos Termos de Uso (LGPD)</h2>
-                            <p className={`text-sm mb-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                Altere o texto dos termos. Usuários inativos há mais de 14 dias ou novos usuários verão um popup obrigatório com este exato texto abaixo.
-                            </p>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {/* Editor */}
-                                <div className="space-y-3">
-                                    <label className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Markdown (Texto Puro)</label>
-                                    <textarea
-                                        value={termsText}
-                                        onChange={(e) => setTermsText(e.target.value)}
-                                        className={`w-full h-[400px] p-5 rounded-2xl resize-none outline-none border transition-all font-mono text-sm ${isDark ? 'bg-[#0F0F0F] border-white/10 focus:border-[#FF754C]/50 text-gray-300' : 'bg-gray-50 border-gray-200 focus:border-[#FF754C]/50 text-gray-700'}`}
-                                        placeholder="# Título do Termo&#10;Seu texto aqui..."
-                                    />
-                                    <button
-                                        onClick={handleSaveTerms}
-                                        disabled={savingTerms}
-                                        className="w-full bg-[#FF754C] hover:bg-[#A21FDC] py-4 rounded-2xl font-bold text-white transition-all flex justify-center items-center gap-2"
-                                    >
-                                        {savingTerms ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save size={18} /> Salvar e Atualizar Plataforma</>}
-                                    </button>
-                                    {termsMessage && (
-                                        <p className="text-green-500 text-sm font-bold text-center mt-2 animate-pulse">{termsMessage}</p>
-                                    )}
-                                </div>
-
-                                {/* Preview */}
-                                <div className="space-y-3">
-                                    <label className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Pré-visualização (Como o aluno verá)</label>
-                                    <div className={`w-full h-[400px] overflow-y-auto p-6 rounded-2xl border ${isDark ? 'bg-[#120222] border-white/10' : 'bg-white border-gray-200 shadow-sm'}`}>
-                                        <div className={`prose prose-sm max-w-none ${isDark ? 'prose-invert prose-p:text-gray-300' : 'prose-gray prose-p:text-gray-600'} prose-headings:font-bold prose-a:text-[#FF754C]`}>
-                                            <ReactMarkdown>{termsText}</ReactMarkdown>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
+                </div>
 
             {/* Ficha do Aluno Modal */}
             {selectedUser && (

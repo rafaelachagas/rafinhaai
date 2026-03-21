@@ -1,4 +1,4 @@
-import { supabaseAdmin } from './supabase/admin';
+import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 /**
@@ -19,15 +19,28 @@ export async function checkAccess(request: Request): Promise<{ userId: string } 
         return NextResponse.json({ error: 'Não autorizado. Token ausente.' }, { status: 401 });
     }
 
+    // Cria um cliente anon com o token do usuário para validação segura
+    const supabaseRouteClient = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            global: {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            },
+        }
+    );
+
     // Verifica o token com o Supabase
-    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error } = await supabaseRouteClient.auth.getUser();
 
     if (error || !user) {
         return NextResponse.json({ error: 'Sessão inválida ou expirada.' }, { status: 401 });
     }
 
     // Busca o perfil para checar hotmart_status e access_expires_at
-    const { data: profile } = await supabaseAdmin
+    const { data: profile } = await supabaseRouteClient
         .from('profiles')
         .select('hotmart_status, access_expires_at, role')
         .eq('id', user.id)

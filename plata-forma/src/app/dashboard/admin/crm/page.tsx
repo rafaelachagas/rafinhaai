@@ -166,21 +166,26 @@ export default function CRMPage() {
         setLoadingTermsHistory(false);
     };
 
-    const handleDownloadCertificate = () => {
+    const handleDownloadCertificate = async () => {
         if (!selectedTermReceipt || typeof window === 'undefined') return;
         const element = document.getElementById('certificate-content');
         if (!element) return;
         
-        import('html2pdf.js').then((html2pdf) => {
+        try {
+            const html2pdf = (await import('html2pdf.js')).default;
             const opt = {
                 margin: 10,
-                filename: `Certificado_Aceite_${selectedUser?.full_name}_V${selectedTermReceipt.version}.pdf`,
+                filename: `Certificado_Aceite_${selectedUser?.full_name?.replace(/[^a-zA-Z0-9]/g, '_')}_V${selectedTermReceipt.version}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2 },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
             } as any;
-            html2pdf.default().from(element).set(opt).save();
-        });
+            
+            await html2pdf().set(opt).from(element).save();
+        } catch (error) {
+            console.error('Erro ao gerar PDF:', error);
+            alert('Não foi possível gerar o PDF. Verifique o console.');
+        }
     };
 
     const handleSaveNote = async () => {

@@ -5,6 +5,7 @@ import { RealtimeNotifier } from '@/components/RealtimeNotifier';
 import { useTheme } from '@/context/ThemeContext';
 import { usePathname } from 'next/navigation';
 import { TermsPopup } from '@/components/TermsPopup';
+import { PhoneEnforcer } from '@/components/PhoneEnforcer';
 
 const IMMERSIVE_ROUTES = ['/dashboard/courses', '/dashboard/watch'];
 
@@ -42,6 +43,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
             <RealtimeNotifier />
             <TermsPopup />
+            <PhoneEnforcer />
         </div>
     );
 }

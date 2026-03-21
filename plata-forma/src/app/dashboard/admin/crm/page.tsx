@@ -19,7 +19,8 @@ import {
     Users,
     ChevronRight,
     Tag,
-    Edit3
+    Edit3,
+    FileText
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import ReactMarkdown from 'react-markdown';
@@ -54,6 +55,8 @@ export default function CRMPage() {
     const [newNote, setNewNote] = useState('');
     const [newTags, setNewTags] = useState(''); // comma separated
     const [savingNote, setSavingNote] = useState(false);
+    const [termsHistory, setTermsHistory] = useState<any[]>([]);
+    const [loadingTermsHistory, setLoadingTermsHistory] = useState(false);
 
     useEffect(() => {
         if (!themeLoading && (!profile || (profile.role !== 'admin' && profile.role !== 'moderator'))) {
@@ -121,7 +124,9 @@ export default function CRMPage() {
     const openStudentProfile = async (u: Profile) => {
         setSelectedUser(u);
         setLoadingNotes(true);
+        setLoadingTermsHistory(true);
         setUserNotes([]);
+        setTermsHistory([]);
 
         // Fetch Notes
         const { data } = await supabase
@@ -132,6 +137,16 @@ export default function CRMPage() {
 
         if (data) setUserNotes(data);
         setLoadingNotes(false);
+
+        // Fetch terms history
+        const { data: tHist } = await supabase
+            .from('user_terms_acceptance')
+            .select('*')
+            .eq('user_id', u.id)
+            .order('accepted_at', { ascending: false });
+
+        if (tHist) setTermsHistory(tHist);
+        setLoadingTermsHistory(false);
     };
 
     const handleSaveNote = async () => {
@@ -420,6 +435,32 @@ export default function CRMPage() {
                                         </span>
                                     </div>
                                 </div>
+
+                                {/* Historico de Termos */}
+                                {termsHistory.length > 0 && (
+                                    <div className="mt-4">
+                                        <p className={`text-[10px] font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                            Histórico de Aceite dos Termos
+                                        </p>
+                                        <div className={`space-y-2 max-h-32 overflow-y-auto pr-2 rounded-xl p-3 border ${isDark ? 'bg-[#0F0F0F] border-white/10' : 'bg-gray-50 border-gray-100'}`}>
+                                            {loadingTermsHistory ? (
+                                                <div className="flex justify-center p-2"><Loader2 className="w-4 h-4 animate-spin text-[#FF754C]" /></div>
+                                            ) : (
+                                                termsHistory.map((hist, idx) => (
+                                                    <div key={hist.id} className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-2">
+                                                            <FileText size={14} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
+                                                            <span className={`text-xs font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Versão {hist.version}</span>
+                                                        </div>
+                                                        <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                                            {new Date(hist.accepted_at).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             <div className={`h-px w-full ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />

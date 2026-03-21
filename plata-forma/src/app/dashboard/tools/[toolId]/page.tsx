@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { LoadingPhrases } from '@/components/LoadingPhrases';
-import { PhonePopup } from '@/components/PhonePopup';
 
 interface FieldConfig {
     id: string;
@@ -257,7 +256,6 @@ export default function DynamicToolPage() {
         filename: ''
     });
     const [downloadingPDF, setDownloadingPDF] = useState(false);
-    const [showPhonePopup, setShowPhonePopup] = useState(false);
 
     const config = TOOL_CONFIGS[toolId];
 
@@ -337,12 +335,6 @@ export default function DynamicToolPage() {
 
         if (missingRequired.length > 0) {
             setFormError(`Preencha os campos obrigatórios:\n• ${missingRequired.join('\n• ')}`);
-            return;
-        }
-
-        // Verificar se o telefone está preenchido
-        if (!profile?.phone) {
-            setShowPhonePopup(true);
             return;
         }
 
@@ -482,10 +474,6 @@ export default function DynamicToolPage() {
                             </button>
                         </div>
                     </div>
-                )}
-
-                {showPhonePopup && (
-                    <PhonePopup onClose={() => setShowPhonePopup(false)} />
                 )}
 
                 <button

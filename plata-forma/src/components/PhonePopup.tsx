@@ -62,7 +62,8 @@ export function PhonePopup({ onClose }: { onClose: () => void }) {
                 {/* Close button */}
                 <button
                     onClick={onClose}
-                    className={`absolute top-4 right-4 p-2 rounded-xl transition-all z-10 ${isDark ? 'text-gray-400 hover:bg-white/10 hover:text-white' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'}`}
+                    className={`absolute top-4 right-4 p-2 rounded-xl transition-all z-10 ${isDark ? 'text-gray-400 hover:bg-white/10 text-white' : 'text-gray-400 hover:bg-gray-100 text-gray-600'}`}
+                    title="Voltar para Ferramentas"
                 >
                     <X size={20} />
                 </button>

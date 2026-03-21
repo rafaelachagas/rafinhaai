@@ -14,6 +14,7 @@ export function TermsPopup() {
     const [isExpired, setIsExpired] = useState(false);
     const [isRevoked, setIsRevoked] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [pendingVersion, setPendingVersion] = useState<number | null>(null);
 
     // Determines if we need to show the popup or if access is expired
     useEffect(() => {
@@ -37,25 +38,53 @@ export function TermsPopup() {
         }
 
         const checkTerms = async () => {
-            // First time login (no check) or > 14 days without active login
             const lastActive = profile.last_active_at ? new Date(profile.last_active_at).getTime() : 0;
             const now = Date.now();
             const daysSinceLastActive = (now - lastActive) / (1000 * 60 * 60 * 24);
 
-            if (!profile.terms_accepted_at || daysSinceLastActive > 14) {
-                // Fetch terms from settings table
-                const { data, error } = await supabase
-                    .from('app_settings')
-                    .select('value')
-                    .eq('key', 'terms_of_use')
-                    .single();
+            // Fetch current ACTIVE term version
+            const { data: activeVersionData, error: activeErr } = await supabase
+                .from('terms_versions')
+                .select('version, text')
+                .eq('is_active', true)
+                .order('version', { ascending: false })
+                .limit(1)
+                .maybeSingle();
 
-                if (!error && data?.value?.text) {
-                    setTermsHtml(data.value.text);
-                } else {
-                    setTermsHtml('# Termos de Uso\n\nPor favor, leia atentamente e aceite os termos para continuar usando a plataforma.');
+            let needsToAccept = false;
+            let currentVersionNumber = activeVersionData?.version || 1;
+            let currentTermsText = activeVersionData?.text || '# Termos de Uso\n\nConfigure seus termos da plataforma.';
+
+            if (activeVersionData) {
+                // Check if user has accepted this exact version in the history table
+                const { data: acceptance } = await supabase
+                    .from('user_terms_acceptance')
+                    .select('id')
+                    .eq('user_id', profile.id)
+                    .eq('version', activeVersionData.version)
+                    .maybeSingle();
+
+                if (!acceptance) {
+                    needsToAccept = true;
                 }
+            } else {
+                // Fallback Se tabela nao existir: Check old mechanism (terms_accepted_at)
+                if (!profile.terms_accepted_at) {
+                    needsToAccept = true;
+                    // fetch from old table
+                    const { data: oldTerms } = await supabase.from('app_settings').select('value').eq('key', 'terms_of_use').single();
+                    if (oldTerms?.value?.text) currentTermsText = oldTerms.value.text;
+                }
+            }
 
+            // Se for inativo ha mais de 14 dias, forcar aceite tambem
+            if (daysSinceLastActive > 14) {
+                needsToAccept = true;
+            }
+
+            if (needsToAccept) {
+                setPendingVersion(currentVersionNumber);
+                setTermsHtml(currentTermsText);
                 setIsOpen(true);
             } else {
                 // Just update last active silently if > 1 day to reduce DB writes
@@ -77,6 +106,15 @@ export function TermsPopup() {
         setError(null);
 
         const now = new Date().toISOString();
+
+        // Salvar no histórico de aceites
+        if (pendingVersion) {
+            await supabase.from('user_terms_acceptance').insert({
+                user_id: profile.id,
+                version: pendingVersion,
+                accepted_at: now
+            });
+        }
 
         const { error: updateError } = await supabase
             .from('profiles')

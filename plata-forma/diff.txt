@@ -1,0 +1,1 @@
+﻿7ddcef8 feat: remover IA/Rafinha, telefone obrigatorio, email novo user, admin settings expandida, corrigir paginas corrompidas

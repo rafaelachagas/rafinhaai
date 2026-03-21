@@ -631,34 +631,35 @@ export default function CRMPage() {
                         </div>
 
                         {/* Conteudo Capturavel pelo PDF */}
-                        <div id="certificate-content" className="flex-1 overflow-y-auto flex flex-col">
+                        <div id="certificate-content" className="flex-1 overflow-y-auto flex flex-col" style={{ backgroundColor: '#ffffff', color: '#000000' }}>
                             {/* Dados da Assinatura */}
-                            <div className={`p-6 border-b flex flex-wrap gap-6 ${isDark ? 'bg-white/5 border-white/10' : 'bg-blue-50 border-blue-100'}`}>
+                            <div className="p-6 border-b flex flex-wrap gap-6" style={{ backgroundColor: '#f8fafc', borderColor: '#e0f2fe' }}>
                                 <div className="flex-1 min-w-[200px]">
-                                    <span className={`block text-[10px] font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-gray-500' : 'text-blue-600/60'}`}>Usuário (Signatário)</span>
-                                    <p className={`font-bold ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>{selectedUser.full_name || 'Usuário Não Identificado'}</p>
-                                    <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{selectedUser.email}</p>
+                                    <span className="block text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: '#2563eb' }}>Usuário (Signatário)</span>
+                                    <p className="font-bold" style={{ color: '#111827' }}>{selectedUser.full_name || 'Usuário Não Identificado'}</p>
+                                    <p className="text-xs" style={{ color: '#4b5563' }}>{selectedUser.email}</p>
                                 </div>
                                 <div className="flex-1 min-w-[200px]">
-                                    <span className={`block text-[10px] font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-gray-500' : 'text-blue-600/60'}`}>Identificadores</span>
-                                    <p className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>ID: {selectedUser.id}</p>
-                                    <p className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Telefone: {selectedUser.phone || 'Não Arquivado'}</p>
+                                    <span className="block text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: '#2563eb' }}>Identificadores</span>
+                                    <p className="text-xs" style={{ color: '#374151' }}>ID: {selectedUser.id}</p>
+                                    <p className="text-xs" style={{ color: '#374151' }}>Telefone: {selectedUser.phone || 'Não Arquivado'}</p>
                                 </div>
                                 <div className="flex-1 min-w-[200px]">
-                                    <span className={`block text-[10px] font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-gray-500' : 'text-blue-600/60'}`}>Dados do Aceite</span>
-                                    <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>Versão do Documento: {selectedTermReceipt.version}</p>
-                                    <p className={`text-xs ${isDark ? 'text-green-400' : 'text-green-600'} font-bold mt-1 tracking-wider`}>ACEITO EM: {new Date(selectedTermReceipt.accepted_at).toLocaleString()}</p>
+                                    <span className="block text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: '#2563eb' }}>Dados do Aceite</span>
+                                    <p className="text-sm font-bold" style={{ color: '#111827' }}>Versão do Documento: {selectedTermReceipt.version}</p>
+                                    <p className="text-xs font-bold mt-1 tracking-wider" style={{ color: '#059669' }}>ACEITO EM: {new Date(selectedTermReceipt.accepted_at).toLocaleString()}</p>
                                 </div>
                             </div>
 
                             {/* Corpo do Documento */}
-                            <div className="flex-1 p-6 md:p-8 bg-black/5 dark:bg-black/50">
-                                <div className={`mx-auto max-w-3xl p-8 border rounded-lg shadow-sm ${isDark ? 'bg-[#0F0F0F] border-white/5' : 'bg-white border-gray-200'}`}>
-                                    <div className="mb-6 pb-6 border-b border-dashed border-gray-300 dark:border-gray-700 text-center">
-                                        <h3 className={`text-lg font-bold uppercase tracking-widest ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Cópia Fiel do Documento</h3>
+                            <div className="flex-1 p-6 md:p-8" style={{ backgroundColor: '#f3f4f6' }}>
+                                <div className="mx-auto max-w-3xl p-8 border rounded-lg shadow-sm" style={{ backgroundColor: '#ffffff', borderColor: '#e5e7eb' }}>
+                                    <div className="mb-6 pb-6 border-b border-dashed text-center" style={{ borderColor: '#d1d5db' }}>
+                                        <h3 className="text-lg font-bold uppercase tracking-widest" style={{ color: '#6b7280' }}>Cópia Fiel do Documento</h3>
                                     </div>
                                     <div 
-                                        className={`prose prose-sm max-w-none ${isDark ? 'prose-invert prose-p:text-gray-300' : 'prose-gray prose-p:text-gray-600'} text-sm leading-relaxed`}
+                                        className="prose prose-sm max-w-none prose-gray prose-p:text-gray-600 text-sm leading-relaxed text-black"
+                                        style={{ color: '#1f2937' }}
                                         dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(selectedTermReceipt.text) }}
                                     />
                                 </div>

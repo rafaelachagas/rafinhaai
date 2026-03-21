@@ -1,0 +1,16 @@
+7ddcef8 feat: remover IA/Rafinha, telefone obrigatorio, email novo user, admin settings expandida, corrigir paginas corrompidas
+3024f67 feat: implement gemini-2.0-flash, security validations and animated loading UI
+dffe051 fix(pdf): add crossOrigin attribute to logo img for html2pdf rendering
+0cf9ad9 feat(admin): add platform settings page for pdf customization
+27a7e69 fix(pdf): set container to A4 width (794px) with exact 40px left/right padding
+35410ea fix(pdf): center content by removing lateral margins, let container padding handle spacing
+9de8d0c fix(pdf): fix margins, reduce padding, add page-break-avoid for clean page transitions
+acd3b1c fix: clean duplicated PDF containers, fix build errors in all AI tools
+430bb43 fix(ai): switch to flash-latest for working quota and improve pdf alignment
+8cd7754 feat(ai): unify interface, add history and fix pdf clipping across all ai tools - final production version
+31d8400 fix(ai): fully resolve pdf margins and hidden layout clipping
+ab8ee85 feat(ai): unify interface, add history and fix pdf clipping across all ai tools
+614ee1d fix(ai): adjust PDF margins and fix text clipping right cutoff
+005c40b fix(ai): html2canvas error with oklch colors by using hex colors in PDF container
+3623af2 feat(ai): add history and PDF export to roteiros tool, update credits
+912791c feat: design de ferramentas e upload de portfolio

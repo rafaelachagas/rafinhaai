@@ -144,7 +144,7 @@ export default function BioPage() {
         try {
             const html2pdf = (await import('html2pdf.js')).default;
             const opt = {
-                margin: 15,
+                margin: 0,
                 filename: `${pdfSettings.filename}_${new Date().getTime()}.pdf`,
                 image: { type: 'jpeg' as const, quality: 0.98 },
                 html2canvas: { scale: 2, useCORS: true, windowWidth: 794, letterRendering: true },
@@ -326,16 +326,16 @@ export default function BioPage() {
                                             <h3 className={`text-3xl font-extrabold ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>Suas 5 opções de <span className="text-[#E1306C]">Bio</span> estão prontas!</h3>
                                         </div>
                                         <div className="flex items-center gap-3 w-full sm:w-auto">
-                                            <button onClick={downloadPDF} disabled={downloadingPDF} className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all border ${isDark ? 'bg-white/5 border-white/10 hover:bg-white/10 text-gray-300' : 'bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-700'}`}>
+                                            <button onClick={downloadPDF} disabled={downloadingPDF} className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all border ${isDark ? 'bg-white/5 border-white/10 hover:bg-white/10 text-gray-300' : 'bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-700'}`}>
                                                 {downloadingPDF ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-                                                <span>PDF</span>
+                                                <span>Salvar PDF</span>
                                             </button>
-                                            <button onClick={copyToClipboard} className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all border ${isDark ? 'bg-white/5 border-white/10 hover:bg-[#E1306C] hover:border-[#E1306C] hover:text-white text-gray-300' : 'bg-gray-50 border-gray-200 hover:bg-[#E1306C] hover:text-white text-gray-700'}`}>
+                                            <button onClick={copyToClipboard} className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all border ${isDark ? 'bg-white/5 border-white/10 hover:bg-[#E1306C] hover:border-[#E1306C] hover:text-white text-gray-300' : 'bg-gray-50 border-gray-200 hover:bg-[#E1306C] hover:text-white text-gray-700'}`}>
                                                 {copied ? <Check size={16} /> : <Copy size={16} />}
                                                 <span>{copied ? 'Copiado!' : 'Copiar'}</span>
                                             </button>
-                                            <button onClick={handleReset} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-[#E1306C] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#c31960] transition-all shadow-xl shadow-[#E1306C]/20">
-                                                <RotateCcw size={16} /> Gerar Novamente
+                                            <button onClick={handleReset} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-[#E1306C] text-white font-bold text-[10px] uppercase tracking-widest hover:bg-[#c31960] transition-all shadow-xl shadow-[#E1306C]/20">
+                                                <RotateCcw size={16} /> Nova Bio
                                             </button>
                                         </div>
                                     </div>

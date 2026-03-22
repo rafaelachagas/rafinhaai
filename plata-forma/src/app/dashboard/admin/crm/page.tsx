@@ -196,9 +196,9 @@ export default function CRMPage() {
         try {
             const html2pdf = (await import('html2pdf.js')).default;
             const opt = {
-                margin: 10,
+                margin: 0,
                 filename: `Certificado_Aceite_${selectedUser.full_name?.replace(/[^a-zA-Z0-9]/g, '_')}_V${selectedTermReceipt.version}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
+                image: { type: 'jpeg' as const, quality: 0.98 },
                 html2canvas: { 
                     scale: 2, 
                     useCORS: true, 
@@ -206,8 +206,8 @@ export default function CRMPage() {
                     windowWidth: 794,
                     letterRendering: true
                 },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            } as any;
+                jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
+            };
             
             await html2pdf().set(opt).from(element).save();
         } catch (error) {

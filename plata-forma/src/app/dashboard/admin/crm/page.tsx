@@ -63,14 +63,32 @@ export default function CRMPage() {
     const [loadingTermsHistory, setLoadingTermsHistory] = useState(false);
     const [showTermsHistory, setShowTermsHistory] = useState(false);
     const [selectedTermReceipt, setSelectedTermReceipt] = useState<any | null>(null);
+    const [pdfSettings, setPdfSettings] = useState({
+        logo: '/logo-original-si.png',
+        footer: 'Documento assinado digitalmente.'
+    });
 
     useEffect(() => {
         if (!themeLoading && (!profile || (profile.role !== 'admin' && profile.role !== 'moderator'))) {
             router.push('/dashboard');
         } else if (profile) {
             fetchData();
+            fetchPdfSettings();
         }
     }, [profile, themeLoading, router]);
+
+    const fetchPdfSettings = async () => {
+        try {
+            const { data } = await supabase.from('platform_settings').select('value').eq('key', 'pdf_settings').single();
+            if (data?.value) {
+                const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+                setPdfSettings({
+                    logo: parsed.logo_url || '/logo-original-si.png',
+                    footer: parsed.footer_termos || 'Documento assinado digitalmente.'
+                });
+            }
+        } catch (e) { /* settings not initialized */ }
+    };
 
     const fetchData = async () => {
         setLoading(true);
@@ -171,17 +189,23 @@ export default function CRMPage() {
     };
 
     const handleDownloadCertificate = async () => {
-        if (!selectedTermReceipt || typeof window === 'undefined') return;
-        const element = document.getElementById('certificate-content');
+        if (!selectedTermReceipt || typeof window === 'undefined' || !selectedUser) return;
+        const element = document.getElementById('certificate-pdf-container');
         if (!element) return;
         
         try {
             const html2pdf = (await import('html2pdf.js')).default;
             const opt = {
                 margin: 10,
-                filename: `Certificado_Aceite_${selectedUser?.full_name?.replace(/[^a-zA-Z0-9]/g, '_')}_V${selectedTermReceipt.version}.pdf`,
+                filename: `Certificado_Aceite_${selectedUser.full_name?.replace(/[^a-zA-Z0-9]/g, '_')}_V${selectedTermReceipt.version}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
+                html2canvas: { 
+                    scale: 2, 
+                    useCORS: true, 
+                    logging: false,
+                    windowWidth: 794,
+                    letterRendering: true
+                },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
             } as any;
             
@@ -687,6 +711,49 @@ export default function CRMPage() {
                                 <Download size={18} />
                                 Salvar em PDF
                             </button>
+                        </div>
+
+                        {/* Hidden PDF Container for robust generation */}
+                        <div style={{ position: 'absolute', top: '-10000px', left: '-10000px' }}>
+                            <div id="certificate-pdf-container" style={{ width: '794px', padding: '50px', backgroundColor: '#ffffff', color: '#000000', fontFamily: 'sans-serif' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '40px', borderBottom: '2px solid #f1f5f9', paddingBottom: '20px' }}>
+                                    <div>
+                                        <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#1e293b' }}>CERTIFICADO DE ACEITE</h1>
+                                        <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px' }}>Comprovante de Assinatura Eletrônica</p>
+                                    </div>
+                                    {pdfSettings.logo && (
+                                        <img src={pdfSettings.logo} crossOrigin="anonymous" style={{ height: '40px', objectFit: 'contain' }} alt="Logo" />
+                                    )}
+                                </div>
+
+                                <div style={{ backgroundColor: '#f8fafc', padding: '30px', borderRadius: '12px', marginBottom: '30px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+                                    <div>
+                                        <h4 style={{ margin: '0 0 8px 0', fontSize: '10px', color: '#2563eb', fontWeight: 'bold', textTransform: 'uppercase' }}>Signatário</h4>
+                                        <p style={{ margin: 0, fontSize: '16px', fontWeight: 'bold' }}>{selectedUser.full_name || 'Alun(a)'}</p>
+                                        <p style={{ margin: '2px 0 0 0', fontSize: '13px', color: '#475569' }}>{selectedUser.email}</p>
+                                        <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: '#64748b' }}>ID: {selectedUser.id}</p>
+                                        <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#64748b' }}>CPF: {selectedUser.cpf || 'Não informado'}</p>
+                                    </div>
+                                    <div>
+                                        <h4 style={{ margin: '0 0 8px 0', fontSize: '10px', color: '#2563eb', fontWeight: 'bold', textTransform: 'uppercase' }}>Informações do Aceite</h4>
+                                        <p style={{ margin: 0, fontSize: '14px', fontWeight: 'bold' }}>Versão dos Termos: {selectedTermReceipt.version}</p>
+                                        <p style={{ margin: '8px 0 0 0', fontSize: '13px', fontWeight: 'bold', color: '#059669' }}>DATA: {new Date(selectedTermReceipt.accepted_at).toLocaleString()}</p>
+                                        <p style={{ margin: '15px 0 0 0', fontSize: '10px', color: '#94a3b8', fontStyle: 'italic' }}>IP do Acesso: {selectedTermReceipt.ip_address || 'Registrado no Log'}</p>
+                                    </div>
+                                </div>
+
+                                <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '30px' }}>
+                                    <h4 style={{ margin: '0 0 20px 0', fontSize: '12px', color: '#64748b', fontWeight: 'bold', textAlign: 'center', borderBottom: '1px dashed #cbd5e1', paddingBottom: '15px' }}>CÓPIA FIEL DO DOCUMENTO ACEITO</h4>
+                                    <div style={{ fontSize: '11px', lineHeight: '1.6', color: '#334155' }}>
+                                        <div dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(selectedTermReceipt.text) }} />
+                                    </div>
+                                </div>
+
+                                <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #f1f5f9', textAlign: 'center' }}>
+                                    <p style={{ fontSize: '9px', color: '#94a3b8', margin: 0 }}>{pdfSettings.footer}</p>
+                                    <p style={{ fontSize: '8px', color: '#cbd5e1', marginTop: '5px' }}>Este documento é uma representação digital das informações contidas na base de dados do App Profissão do Futuro.</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -62,6 +62,7 @@ export default function RoteiroPage() {
             } else {
                 setLoading(false);
                 fetchUnreadCount();
+                fetchSettings();
             }
         }
     }, [profile, themeLoading, router]);

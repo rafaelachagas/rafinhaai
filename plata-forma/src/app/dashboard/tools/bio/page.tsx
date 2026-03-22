@@ -6,9 +6,21 @@ import { useTheme } from '@/context/ThemeContext';
 import { supabase } from '@/lib/supabase/client';
 import { Header } from '@/components/Header';
 import {
-    Sparkles, Loader2, Copy, Check, ArrowLeft, Instagram, AtSign, RotateCcw, Download, History, Plus
+    Sparkles, PenTool, Loader2, Copy, Check, ArrowLeft, ArrowRight,
+    Target, User, Star, Award, Zap, MessageSquare, Goal, Layout, Download, Megaphone
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+
+const STEPS = [
+    { id: 'nome', label: 'Nome', icon: User, question: 'Nome ou Marca que aparecerá na Bio?', placeholder: 'Ex: João Silva ou Agência Digital...', type: 'text' },
+    { id: 'nicho', label: 'Nicho', icon: Target, question: 'Qual o seu nicho?', placeholder: 'Ex: Emagrecimento, Marketing, Investimentos...', type: 'text' },
+    { id: 'publico', label: 'Público', icon: Megaphone, question: 'Quem é seu público-alvo?', placeholder: 'Ex: Mulheres 25+, Empresários, Iniciantes...', type: 'text' },
+    { id: 'resultados', label: 'Resultados', icon: Award, question: 'Quais seus principais resultados?', placeholder: 'Ex: +10mil alunos, 5 anos de experiência...', type: 'textarea' },
+    { id: 'diferenciais', label: 'Diferenciais', icon: Star, question: 'O que te diferencia dos outros?', placeholder: 'Ex: Método prático, Atendimento VIP...', type: 'text' },
+    { id: 'tomVoz', label: 'Tom de Voz', icon: MessageSquare, question: 'Qual o tom de voz desejado?', placeholder: '', type: 'select', options: ['Profissional', 'Descontraído', 'Inspirador', 'Direto', 'Engraçado'] },
+    { id: 'objetivo', label: 'Objetivo', icon: Goal, question: 'Qual o objetivo principal do perfil?', placeholder: '', type: 'select', options: ['Vender curso', 'Crescer seguidores', 'Autoridade', 'Agendamentos'] },
+    { id: 'estilo', label: 'Estilo', icon: Layout, question: 'Qual estilo da Bio?', placeholder: '', type: 'select', options: ['Moderno', 'Minimalista', 'Com Emojis', 'Sério'] },
+];
 
 export default function BioPage() {
     const router = useRouter();
@@ -18,18 +30,20 @@ export default function BioPage() {
     const [recentMessages, setRecentMessages] = useState<any[]>([]);
     const [notificationsOpen, setNotificationsOpen] = useState(false);
 
-    const [formData, setFormData] = useState({
-        nome: '', nicho: '', resultados: '', diferenciais: '',
-        publicoAlvo: '', tomVoz: '', objetivo: '', estilo: ''
+    const [currentStep, setCurrentStep] = useState(0);
+    const [formData, setFormData] = useState<Record<string, string>>({
+        nome: '', nicho: '', publico: '', resultados: '', diferenciais: '', tomVoz: '', objetivo: '', estilo: ''
     });
+
     const [generating, setGenerating] = useState(false);
-    const [bios, setBios] = useState('');
+    const [bio, setBio] = useState('');
     const [copied, setCopied] = useState(false);
+    const [downloadingPDF, setDownloadingPDF] = useState(false);
     const [activeTab, setActiveTab] = useState<'novo' | 'historico'>('novo');
     const [history, setHistory] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
-    const [downloadingPDF, setDownloadingPDF] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
+
     const [pdfSettings, setPdfSettings] = useState({
         logo: '/logo-original-si.png',
         footer: 'Bio gerada pelo App Profissão do Futuro.'
@@ -61,12 +75,9 @@ export default function BioPage() {
                     footer: parsed.footer_bio || 'Bio gerada pelo App Profissão do Futuro.'
                 });
             }
-        } catch (e) {
-            // Settings not initialized yet
-        }
+        } catch (e) {}
     };
 
-    
     const fetchHistory = async () => {
         if (!profile?.id) return;
         setLoadingHistory(true);
@@ -76,7 +87,6 @@ export default function BioPage() {
             .eq('user_id', profile.id)
             .eq('tool_type', 'bio')
             .order('created_at', { ascending: false });
-        
         if (data) setHistory(data);
         setLoadingHistory(false);
     };
@@ -93,33 +103,54 @@ export default function BioPage() {
         if (count !== null) setUnreadCount(count);
     }
 
+    const currentField = STEPS[currentStep];
+    const canProceed = !!(formData[currentField?.id]?.toString().trim());
+
+    const handleNext = () => {
+        if (currentStep < STEPS.length - 1) setCurrentStep(currentStep + 1);
+        else handleGenerate();
+    };
+
+    const handleBack = () => { if (currentStep > 0) setCurrentStep(currentStep - 1); };
+
     const handleGenerate = async () => {
-        if (!formData.nicho || !formData.publicoAlvo) return;
         setGenerating(true);
         try {
+            const { data: { session } } = await supabase.auth.getSession();
             const res = await fetch('/api/ai/bio', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
                 body: JSON.stringify(formData),
             });
             const data = await res.json();
-            if (data.bios) setBios(data.bios);
-            if (profile?.id) {
-                await supabase.from('ai_content_history').insert([{ user_id: profile.id, tool_type: 'bio', input_data: formData, output_content: data.bios }]);
-            }
-            else setBios('Erro ao gerar bio. Tente novamente.');
-        } catch {
-            setBios('Erro de conexão. Verifique sua internet.');
-        } finally {
-            setGenerating(false);
-        }
+            if (data.bios) {
+                setBio(data.bios);
+                if (profile?.id) {
+                    const { data: curr } = await supabase.from('profiles').select('ai_tools_used').eq('id', profile.id).single();
+                    await supabase.from('profiles').update({ 
+                        ai_tools_used: (curr?.ai_tools_used || 0) + 1 
+                    }).eq('id', profile.id);
+
+                    await supabase.from('ai_content_history').insert([{
+                        user_id: profile.id, tool_type: 'bio', input_data: formData, output_content: data.bios
+                    }]);
+                }
+            } else setBio(data.error || 'Erro ao gerar bio. Tente novamente.');
+        } catch { setBio('Erro de conexão.'); }
+        finally { setGenerating(false); }
     };
 
-    const handleReset = () => { setFormData({ nome: '', nicho: '', resultados: '', diferenciais: '', publicoAlvo: '', tomVoz: '', objetivo: '', estilo: '' }); setBios(''); setActiveTab('novo'); };
+    const handleReset = () => {
+        setCurrentStep(0);
+        setFormData({ nome: '', nicho: '', publico: '', resultados: '', diferenciais: '', tomVoz: '', objetivo: '', estilo: '' });
+        setBio('');
+    };
 
-        const copyToClipboard = () => {
-        const textToCopy = `${bios}\n\n---\nBio gerada pelo App Profissão do Futuro.`;
-        navigator.clipboard.writeText(textToCopy);
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(bio);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
@@ -130,24 +161,18 @@ export default function BioPage() {
         try {
             const html2pdf = (await import('html2pdf.js')).default;
             const element = contentRef.current;
-            if (element.parentElement) element.parentElement.style.display = 'block';
-            
+            const container = element.parentElement;
+            if (container) container.style.display = 'block';
             const opt = {
-                margin:       [10, 0, 10, 0] as [number, number, number, number],
-                filename:     'Bio_Gerada_IA.pdf',
-                image:        { type: 'jpeg' as const, quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true, windowWidth: 794, letterRendering: true },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
-                pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+                margin: 10,
+                filename: 'Bio_Profissional.pdf',
+                image: { type: 'jpeg' as const, quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, windowWidth: 794 },
+                jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
             };
-            
             await html2pdf().set(opt).from(element).save();
-            if (element.parentElement) element.parentElement.style.display = 'none';
-        } catch (error) {
-            console.error('Erro ao gerar PDF', error);
-        } finally {
-            setDownloadingPDF(false);
-        }
+            if (container) container.style.display = 'none';
+        } finally { setDownloadingPDF(false); }
     };
 
     if (loading || themeLoading) return null;
@@ -156,242 +181,126 @@ export default function BioPage() {
         <div className="flex flex-col xl:flex-row gap-8 max-w-[1600px] mx-auto w-full">
             <main className="flex-1 p-4 lg:p-8 flex flex-col gap-8 w-full min-w-0">
                 <Header profile={profile} unreadCount={unreadCount} onNotificationToggle={() => setNotificationsOpen(!notificationsOpen)} showProfile={true} notificationsOpen={notificationsOpen} recentMessages={recentMessages} />
-
-                {/* Back */}
-                <button onClick={() => router.push('/dashboard/tools')} className={`inline-flex items-center gap-3 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-[#6C5DD3]'} font-bold text-sm uppercase tracking-widest transition-all group w-fit`}>
-                    <div className={`w-10 h-10 rounded-xl ${isDark ? 'bg-white/5 border-white/5' : 'bg-white border-gray-100'} border flex items-center justify-center group-hover:bg-[#E1306C]/10 group-hover:border-[#E1306C]/20 transition-all`}>
+                
+                <button onClick={() => router.push('/dashboard/tools')} className={`inline-flex items-center gap-3 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-[#FF754C]'} font-bold text-sm uppercase tracking-widest transition-all group w-fit`}>
+                    <div className={`w-10 h-10 rounded-xl ${isDark ? 'bg-white/5 border-white/5' : 'bg-white border-gray-100'} border flex items-center justify-center group-hover:bg-[#FF754C]/10 group-hover:border-[#FF754C]/20 transition-all`}>
                         <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
                     </div>
-                    Voltar para Ferramentas
+                    Voltar
                 </button>
 
-                {/* Title */}
-                
                 <div className="flex flex-col gap-6">
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-2 text-[#E1306C] font-black text-[10px] uppercase tracking-[0.4em]">
-                                <Instagram size={12} /> Gerador de Bio
-                            </div>
-                            <h1 className={`text-4xl lg:text-5xl font-extrabold tracking-tight ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>
-                                Bio do <span className="text-[#E1306C]">Instagram</span>
-                            </h1>
-                            <p className="text-gray-400 font-medium max-w-lg">
-                                Receba 5 opções de bio profissional otimizadas para gerar autoridade e converter seguidores em clientes.
-                            </p>
-                        </div>
+                    <div className="flex items-center gap-2 text-[#FF754C] font-black text-[10px] uppercase tracking-[0.4em]">
+                        <Zap size={12} /> Gerador de Bio
                     </div>
-                    {/* Tabs */}
                     <div className="flex items-center gap-4">
-                        <button onClick={() => setActiveTab('novo')} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm transition-all ${activeTab === 'novo' ? 'bg-[#E1306C] text-white shadow-lg shadow-[#E1306C]/30' : isDark ? 'bg-white/5 text-gray-400 hover:text-white' : 'bg-gray-100 text-gray-500 hover:text-gray-900'}`}>
-                            <Plus size={18} /> Nova Bio
+                        <button onClick={() => setActiveTab('novo')} className={`px-6 py-3 rounded-2xl font-bold text-sm transition-all ${activeTab === 'novo' ? 'bg-[#FF754C] text-white shadow-lg' : isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+                            Nova Bio
                         </button>
-                        <button onClick={() => setActiveTab('historico')} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm transition-all ${activeTab === 'historico' ? 'bg-[#E1306C] text-white shadow-lg shadow-[#E1306C]/30' : isDark ? 'bg-white/5 text-gray-400 hover:text-white' : 'bg-gray-100 text-gray-500 hover:text-gray-900'}`}>
-                            <History size={18} /> Histórico
+                        <button onClick={() => setActiveTab('historico')} className={`px-6 py-3 rounded-2xl font-bold text-sm transition-all ${activeTab === 'historico' ? 'bg-[#FF754C] text-white shadow-lg' : isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+                            Histórico
                         </button>
                     </div>
                 </div>
 
                 {activeTab === 'historico' ? (
-                                        <div className={`p-8 rounded-[2.5rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'}`}>
-                        <h2 className={`text-2xl font-bold mb-6 ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>Seu Histórico</h2>
-                        {loadingHistory ? (
-                            <div className="flex items-center justify-center p-12">
-                                <Loader2 className="w-8 h-8 text-[#6C5DD3] animate-spin" />
-                            </div>
-                        ) : history.length === 0 ? (
-                            <div className="text-center p-12 text-gray-500 font-medium">
-                                Você ainda não gerou nenhum histórico.
-                            </div>
+                   <div className={`p-8 rounded-[2.5rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'}`}>
+                      {loadingHistory ? <Loader2 className="animate-spin mx-auto" /> : history.length === 0 ? <p>Pressione "Nova Bio" para começar.</p> : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {history.map(item => (
+                                  <div key={item.id} className="p-6 border rounded-2xl">
+                                      <p className="font-bold">{new Date(item.created_at).toLocaleDateString()}</p>
+                                      <button onClick={() => { setBio(item.output_content); setActiveTab('novo'); }} className="mt-4 text-[#FF754C] font-bold">Ver Bio</button>
+                                  </div>
+                              ))}
+                          </div>
+                      )}
+                   </div>
+                ) : bio || generating ? (
+                    <div className={`p-10 rounded-[2.5rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'} min-h-[500px] relative`}>
+                        {generating ? (
+                           <div className="flex flex-col items-center justify-center h-full gap-4 pt-20">
+                               <Loader2 className="animate-spin text-[#FF754C] w-12 h-12" />
+                               <p className="font-bold text-[#FF754C] tracking-widest uppercase">CRIANDO BIO SURPREENDENTE...</p>
+                           </div>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {history.map((item) => (
-                                    <div key={item.id} className={`p-6 rounded-2xl border ${isDark ? 'bg-white/5 border-white/10 hover:bg-white/10' : 'bg-gray-50 border-gray-200 hover:shadow-md'} transition-all flex flex-col justify-between`}>
-                                        <div className="mb-4">
-                                            <h3 className={`font-bold text-lg mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>Geração de {new Date(item.created_at).toLocaleDateString('pt-BR')}</h3>
-                                            <p className="text-sm text-gray-500">{new Date(item.created_at).toLocaleTimeString('pt-BR')}</p>
-                                        </div>
-                                        <button 
-                                            onClick={() => {
-                                                setBios(item.output_content);
-                                                setActiveTab('novo');
-                                            }}
-                                            className={`w-full py-3 ${isDark ? 'bg-white/5 hover:bg-[#6C5DD3] text-white' : 'bg-white border border-gray-200 hover:border-[#6C5DD3] hover:text-[#6C5DD3] text-gray-700'} font-bold text-sm rounded-xl transition-all`}
-                                        >
-                                            Visualizar
-                                        </button>
+                            <div className="space-y-6">
+                                <div className="flex justify-between items-center">
+                                   <h2 className="text-2xl font-bold">Sua Nova Bio</h2>
+                                    <div className="flex gap-2">
+                                        <button onClick={downloadPDF} className="p-2 border rounded-xl"><Download size={20}/></button>
+                                        <button onClick={copyToClipboard} className="p-2 border rounded-xl"><Copy size={20}/></button>
+                                        <button onClick={handleReset} className="bg-[#FF754C] text-white px-4 py-2 rounded-xl font-bold">Nova</button>
                                     </div>
-                                ))}
+                                </div>
+                                <div className="prose max-w-none text-left dark:text-gray-300">
+                                    <ReactMarkdown>{bio}</ReactMarkdown>
+                                </div>
                             </div>
                         )}
+                        <div style={{ display: 'none', position: 'absolute' }}>
+                             <div ref={contentRef} style={{ width: '794px', padding: '40px', background: 'white', color: '#000000', fontFamily: 'sans-serif' }}>
+                                 {pdfSettings.logo && <img src={pdfSettings.logo} crossOrigin="anonymous" style={{ height: '50px', marginBottom: '20px' }} />}
+                                 <div style={{ fontSize: '13px', lineHeight: '1.6' }}>
+                                    <ReactMarkdown 
+                                        components={{
+                                            h1: ({node, ...props}) => <h1 style={{ color: '#FF754C', fontSize: '24px', fontWeight: '900', marginTop: '20px', marginBottom: '10px' }} {...props} />,
+                                            h2: ({node, ...props}) => <h2 style={{ color: '#FF754C', fontSize: '20px', fontWeight: '900', marginTop: '15px', marginBottom: '8px' }} {...props} />,
+                                            h3: ({node, ...props}) => <h3 style={{ color: '#FF754C', fontSize: '18px', fontWeight: 'bold', marginTop: '12px', marginBottom: '5px' }} {...props} />,
+                                            p: ({node, ...props}) => <p style={{ marginBottom: '10px' }} {...props} />,
+                                            strong: ({node, ...props}) => <strong style={{ fontWeight: 'bold' }} {...props} />,
+                                            ul: ({node, ...props}) => <ul style={{ marginLeft: '20px', marginBottom: '10px', listStyleType: 'disc' }} {...props} />,
+                                            li: ({node, ...props}) => <li style={{ marginBottom: '5px' }} {...props} />,
+                                        }}
+                                    >
+                                        {bio}
+                                    </ReactMarkdown>
+                                 </div>
+                                 <p style={{ marginTop: '40px', fontSize: '10px', color: '#666' }}>{pdfSettings.footer}</p>
+                             </div>
+                        </div>
                     </div>
-                ) : generating || bios ? (
-                    <div className={`p-10 rounded-[2.5rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'} min-h-[500px] relative overflow-hidden`}>
-                        {generating ? (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-8 z-20">
-                                <div className="relative">
-                                    <div className="w-24 h-24 border-2 border-[#E1306C]/20 rounded-full animate-ping absolute inset-0"></div>
-                                    <div className="w-24 h-24 border-t-2 border-[#E1306C] rounded-full animate-spin relative z-10"></div>
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <Sparkles className="text-[#E1306C] w-8 h-8 animate-pulse" />
-                                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        <div className="lg:col-span-3 space-y-4">
+                            {STEPS.map((step, i) => (
+                                <div key={step.id} className="flex items-center gap-3">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${i <= currentStep ? 'bg-[#FF754C] text-white' : 'bg-gray-200 text-gray-400'}`}>{i + 1}</div>
+                                    <span className={`font-bold text-xs uppercase tracking-widest ${i <= currentStep ? 'text-[#FF754C]' : 'text-gray-400'}`}>{step.label}</span>
                                 </div>
-                                <div className="text-center space-y-2">
-                                    <p className="text-lg font-black tracking-widest text-[#E1306C] uppercase">Gerando suas Bios</p>
-                                    <p className="text-sm text-gray-400 font-medium">Buscando palavras-chave e otimizando perfis...</p>
-                                </div>
-                            </div>
-                        ) : bios ? (
-                            <div className="space-y-8">
-                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                    <div className="space-y-1">
-                                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#E1306C]">Bios Geradas</span>
-                                        <h3 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>Suas 5 opções de bio estão prontas!</h3>
+                            ))}
+                        </div>
+                        <div className="lg:col-span-9">
+                           <div className={`p-10 rounded-[2.5rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'} min-h-[400px] flex flex-col justify-between`}>
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-3 text-gray-400">
+                                         {currentField.icon && <currentField.icon size={20} />}
+                                         <span className="text-[10px] font-bold uppercase tracking-widest">Passo {currentStep + 1} de {STEPS.length}</span>
                                     </div>
-                                    <div className="flex items-center gap-3 flex-wrap">
-                                        <button onClick={downloadPDF} disabled={downloadingPDF} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all border ${isDark ? 'bg-white/5 border-white/10 hover:bg-white/10 text-gray-300' : 'bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-700'} ${downloadingPDF ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                                            {downloadingPDF ? <><Loader2 size={16} className="animate-spin" /> Gerando PDF...</> : <><Download size={16} /> Salvar PDF</>}
-                                        </button>
-                                        <button onClick={copyToClipboard} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all border ${isDark ? 'bg-white/5 border-white/10 hover:bg-[#E1306C] hover:border-[#E1306C] hover:text-white text-gray-300' : 'bg-gray-50 border-gray-200 hover:bg-[#E1306C] hover:text-white text-gray-700'}`}>
-                                            {copied ? <><Check size={16} /> Copiado!</> : <><Copy size={16} /> Copiar</>}
-                                        </button>
-                                        <button onClick={handleReset} className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#E1306C] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#c31960] transition-all shadow-lg shadow-[#E1306C]/20">
-                                            <RotateCcw size={16} /> Gerar Novamente
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className={`p-8 rounded-[2rem] border ${isDark ? 'bg-black/30 border-white/5' : 'bg-gray-50 border-gray-100'}`}>
-                                    <div className={`prose max-w-none ${isDark ? 'text-gray-300' : 'text-gray-700'}
-                                        [&>p]:mb-6 [&>p]:leading-relaxed 
-                                        [&>h1]:text-3xl [&>h1]:font-black [&>h1]:mb-6 [&>h1]:mt-8 [&>h1]:text-[#E1306C]
-                                        [&>h2]:text-2xl [&>h2]:font-bold [&>h2]:mb-4 [&>h2]:mt-8 [&>h2]:text-[#E1306C]
-                                        [&>h3]:text-xl [&>h3]:font-bold [&>h3]:mb-3 [&>h3]:mt-6 
-                                        [&>ul]:list-disc [&>ul]:ml-6 [&>ul]:mb-6 [&>ul>li]:mb-2
-                                        [&>ol]:list-decimal [&>ol]:ml-6 [&>ol]:mb-6 [&>ol>li]:mb-2
-                                        [&_strong]:font-bold ${isDark ? '[&_strong]:text-white' : '[&_strong]:text-black'}
-                                        font-medium leading-relaxed`}>
-                                        <ReactMarkdown>{bios}</ReactMarkdown>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : null}
-                        {/* Hidden PDF container */}
-                        <div style={{ display: 'none', position: 'absolute', top: '-9999px', left: '-9999px' }}>
-                            <div ref={contentRef} style={{ width: '794px', backgroundColor: '#ffffff', color: '#1f2937', padding: '30px 40px', boxSizing: 'border-box' }} className="font-sans">
-                                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '30px', borderBottom: '2px solid #f3f4f6', paddingBottom: '20px' }}>
-                                    {pdfSettings.logo ? (
-                                        <img src={pdfSettings.logo} crossOrigin="anonymous" alt="Logo" style={{ height: '50px', objectFit: 'contain' }} />
-                                    ) : (
-                                        <div style={{ height: '50px' }}></div>
+                                    <h2 className="text-3xl font-bold">{currentField.question}</h2>
+                                    {currentField.type === 'text' && <input type="text" value={formData[currentField.id]} onChange={e => setFormData({...formData, [currentField.id]: e.target.value})} className="w-full p-5 border rounded-2xl bg-transparent text-lg focus:ring-2 focus:ring-[#FF754C]/20 outline-none transition-all" autoFocus placeholder={currentField.placeholder} />}
+                                    {currentField.type === 'textarea' && <textarea rows={6} value={formData[currentField.id]} onChange={e => setFormData({...formData, [currentField.id]: e.target.value})} className="w-full p-5 border rounded-2xl bg-transparent text-lg focus:ring-2 focus:ring-[#FF754C]/20 outline-none transition-all resize-none" autoFocus placeholder={currentField.placeholder} />}
+                                    {currentField.type === 'select' && (
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                            {currentField.options?.map(opt => (
+                                                <button key={opt} onClick={() => { setFormData({...formData, [currentField.id]: opt}); setTimeout(handleNext, 200); }} className={`p-5 border rounded-2xl font-bold text-sm transition-all ${formData[currentField.id] === opt ? 'bg-[#FF754C] text-white border-[#FF754C] shadow-lg shadow-[#FF754C]/20' : isDark ? 'bg-white/5 border-white/5 hover:bg-white/10' : 'bg-gray-50 border-gray-100 hover:bg-gray-100'}`}>{opt}</button>
+                                            ))}
+                                        </div>
                                     )}
                                 </div>
-                                <div style={{ width: '100%', textAlign: 'left' }}>
-                                    <div style={{ color: '#1f2937', fontSize: '13px', lineHeight: '1.7', wordBreak: 'break-word' }}>
-                                        <div className="
-                                            [&_p]:mb-3 [&_p]:leading-relaxed
-                                            [&_h1]:text-xl [&_h1]:font-black [&_h1]:mb-4 [&_h1]:mt-6 [&_h1]:text-[#E1306C]
-                                            [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:mt-5 [&_h2]:text-[#E1306C]
-                                            [&_h3]:text-base [&_h3]:font-bold [&_h3]:mb-2 [&_h3]:mt-4 [&_h3]:text-[#E1306C]
-                                            [&_ul]:list-disc [&_ul]:ml-5 [&_ul]:mb-3 [&_ul_li]:mb-1
-                                            [&_ol]:list-decimal [&_ol]:ml-5 [&_ol]:mb-3 [&_ol_li]:mb-1
-                                            [&_strong]:font-bold [&_strong]:text-[#000000]
-                                            [&_hr]:my-6 [&_hr]:border-[#e5e7eb]
-                                            [&_h1]:break-after-avoid [&_h2]:break-after-avoid [&_h3]:break-after-avoid
-                                            [&_li]:break-inside-avoid
-                                        ">
-                                            <ReactMarkdown>{bios}</ReactMarkdown>
-                                        </div>
-                                    </div>
+                                <div className="flex justify-between mt-10">
+                                    <button onClick={handleBack} disabled={currentStep === 0} className="flex items-center gap-2 px-6 py-3 border rounded-xl font-bold text-sm disabled:opacity-20 hover:bg-gray-100 dark:hover:bg-white/5 transition-all">
+                                        <ArrowLeft size={16}/> Voltar
+                                    </button>
+                                    <button onClick={handleNext} disabled={!canProceed} className="flex items-center gap-2 px-8 py-4 bg-[#FF754C] text-white font-bold rounded-2xl disabled:opacity-50 shadow-xl shadow-[#FF754C]/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                                        {currentStep === STEPS.length - 1 ? 'Gerar Bio' : 'Próximo'} <ArrowRight size={18}/>
+                                    </button>
                                 </div>
-                                <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #e5e7eb', textAlign: 'center', fontSize: '11px', fontWeight: '600', color: '#9ca3af' }}>
-                                    {pdfSettings.footer}
-                                </div>
-                            </div>
-                        </div></div>
-                ) : (
-/* ===== FORM ===== */
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                        <div className="lg:col-span-7">
-                            <div className={`p-8 rounded-[2.5rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'} space-y-6`}>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                    <InputField label="Nome ou Marca" value={formData.nome} onChange={(v: string) => setFormData({ ...formData, nome: v })} placeholder="Ex: Maria Finanças" isDark={isDark} />
-                                    <InputField label="Nicho *" value={formData.nicho} onChange={(v: string) => setFormData({ ...formData, nicho: v })} placeholder="Ex: Marketing Digital" isDark={isDark} required />
-                                    <InputField label="Público-alvo *" value={formData.publicoAlvo} onChange={(v: string) => setFormData({ ...formData, publicoAlvo: v })} placeholder="Ex: Empreendedoras iniciantes" isDark={isDark} required />
-                                    <InputField label="Resultados/Conquistas" value={formData.resultados} onChange={(v: string) => setFormData({ ...formData, resultados: v })} placeholder="Ex: +500 alunas formadas" isDark={isDark} />
-                                    <InputField label="Diferenciais" value={formData.diferenciais} onChange={(v: string) => setFormData({ ...formData, diferenciais: v })} placeholder="Ex: Método exclusivo de 7 dias" isDark={isDark} className="md:col-span-2" />
-                                </div>
-
-                                <div className="space-y-3">
-                                    <label className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Tom de Voz</label>
-                                    <div className="flex flex-wrap gap-2">
-                                        {['Profissional', 'Descontraído', 'Empoderado', 'Minimalista', 'Aspiracional'].map(t => (
-                                            <button key={t} onClick={() => setFormData({ ...formData, tomVoz: t })} className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${formData.tomVoz === t ? 'bg-[#E1306C] border-[#E1306C] text-white shadow-lg shadow-[#E1306C]/20' : `${isDark ? 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-[#E1306C]/5'}`}`}>
-                                                {t}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="space-y-3">
-                                    <label className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Objetivo do Perfil</label>
-                                    <div className="flex flex-wrap gap-2">
-                                        {['Vender', 'Gerar Autoridade', 'Captar Leads', 'Crescer Seguidores', 'Networking'].map(o => (
-                                            <button key={o} onClick={() => setFormData({ ...formData, objetivo: o })} className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${formData.objetivo === o ? 'bg-[#E1306C] border-[#E1306C] text-white shadow-lg shadow-[#E1306C]/20' : `${isDark ? 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-[#E1306C]/5'}`}`}>
-                                                {o}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <button onClick={handleGenerate} disabled={generating || !formData.nicho || !formData.publicoAlvo} className="w-full py-5 rounded-2xl bg-gradient-to-r from-[#E1306C] to-[#C13584] text-white font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:scale-[1.01] transition-all shadow-xl shadow-[#E1306C]/20 disabled:opacity-50 disabled:cursor-not-allowed">
-                                    {generating ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Sparkles size={20} /> Gerar 5 Bios</>}
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="lg:col-span-5 space-y-6">
-                            {/* Preview Card */}
-                            <div className={`p-8 rounded-[2.5rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'}`}>
-                                <div className="flex items-center gap-4 mb-6">
-                                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#833AB4] via-[#E1306C] to-[#F77737] p-0.5">
-                                        <div className={`w-full h-full rounded-full ${isDark ? 'bg-[#1A1D1F]' : 'bg-white'} flex items-center justify-center`}>
-                                            <AtSign size={28} className="text-[#E1306C]" />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h4 className={`font-bold ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>{formData.nome || 'Seu Perfil'}</h4>
-                                        <p className="text-xs text-gray-400">{formData.nicho || 'Seu nicho aqui'}</p>
-                                    </div>
-                                </div>
-                                <div className={`p-4 rounded-2xl ${isDark ? 'bg-white/5' : 'bg-gray-50'} min-h-[80px] flex items-center justify-center`}>
-                                    <p className="text-xs text-gray-400 text-center italic">Suas bios aparecerão aqui após gerar...</p>
-                                </div>
-                            </div>
-
-                            <div className={`p-6 rounded-[2rem] border ${isDark ? 'bg-gradient-to-br from-[#E1306C]/5 to-transparent border-[#E1306C]/10' : 'bg-[#E1306C]/5 border-[#E1306C]/10'}`}>
-                                <h4 className={`font-bold text-sm mb-3 ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>📱 O que uma boa bio precisa ter:</h4>
-                                <ul className="space-y-2">
-                                    {['Quem você é e o que faz', 'Para quem você ajuda', 'Resultado que entrega', 'CTA claro (link, DM, etc.)'].map((tip, i) => (
-                                        <li key={i} className="flex items-center gap-2 text-xs text-gray-400">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-[#E1306C] shrink-0"></div>
-                                            {tip}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
+                           </div>
                         </div>
                     </div>
                 )}
             </main>
-        </div>
-    );
-}
-
-function InputField({ label, value, onChange, placeholder, isDark, required, className = '' }: any) {
-    return (
-        <div className={`space-y-2 ${className}`}>
-            <label className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{label}</label>
-            <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className={`w-full ${isDark ? 'bg-white/5 border-white/10 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-200 placeholder-gray-400'} border rounded-2xl px-5 py-4 text-sm font-medium outline-none focus:ring-2 focus:ring-[#E1306C]/40 transition-all`} />
         </div>
     );
 }

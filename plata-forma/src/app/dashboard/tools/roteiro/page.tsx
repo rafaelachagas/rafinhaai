@@ -110,12 +110,16 @@ export default function RoteiroPage() {
     }, [activeTab, profile]);
 
     const currentField = STEPS[currentStep];
-    const canProceed = formData[currentField?.id]?.trim().length > 0;
+    const canProceed = !!(formData[currentField?.id]?.toString().trim());
 
     const handleNext = () => {
         if (currentStep < STEPS.length - 1) {
             setCurrentStep(currentStep + 1);
         } else {
+            // IMPORTANT: Set generating BEFORE triageCompleted to avoid 
+            // a blank screen (race condition where result area renders but
+            // generating=false and script="" shows nothing)
+            setGenerating(true);
             setTriageCompleted(true);
             handleGenerate();
         }
@@ -128,27 +132,33 @@ export default function RoteiroPage() {
     const handleGenerate = async () => {
         setGenerating(true);
         try {
+            const { data: { session } } = await supabase.auth.getSession();
             const res = await fetch('/api/ai/roteiros', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
                 body: JSON.stringify(formData),
             });
             const data = await res.json();
             if (data.script) {
                 setScript(data.script);
-                // Salvar no histórico
+                // Increment Usage and Save History
                 if (profile?.id) {
+                    const { data: curr } = await supabase.from('profiles').select('ai_tools_used').eq('id', profile.id).single();
+                    await supabase.from('profiles').update({ 
+                        ai_tools_used: (curr?.ai_tools_used || 0) + 1 
+                    }).eq('id', profile.id);
+                    
                     await supabase.from('ai_content_history').insert([{
-                        user_id: profile.id,
-                        tool_type: 'roteiro',
-                        input_data: formData,
-                        output_content: data.script
+                        user_id: profile.id, tool_type: 'roteiro', input_data: formData, output_content: data.script
                     }]);
                 }
             } else {
-                setScript('Erro ao gerar roteiro. Tente novamente.');
+                setScript(data.error || 'Erro ao gerar roteiro. Tente novamente.');
             }
-        } catch {
+        } catch (error) {
             setScript('Erro de conexão. Verifique sua internet e tente novamente.');
         } finally {
             setGenerating(false);
@@ -448,6 +458,23 @@ export default function RoteiroPage() {
                             </div>
                         ) : null}
 
+                        {/* If we're in the result area but nothing to show, show the loader as fallback */}
+                        {!generating && !script && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-8 z-20">
+                                <div className="relative">
+                                    <div className="w-24 h-24 border-2 border-[#6C5DD3]/20 rounded-full animate-ping absolute inset-0"></div>
+                                    <div className="w-24 h-24 border-t-2 border-[#6C5DD3] rounded-full animate-spin relative z-10"></div>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <Sparkles className="text-[#6C5DD3] w-8 h-8 animate-pulse" />
+                                    </div>
+                                </div>
+                                <div className="text-center space-y-2">
+                                    <p className="text-lg font-black tracking-widest text-[#6C5DD3] uppercase">Gerando seu Roteiro</p>
+                                    <p className="text-sm text-gray-400 font-medium">Analisando seu avatar, objetivo e plataforma...</p>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Hidden PDF container */}
                         <div style={{ display: 'none', position: 'absolute', top: '-9999px', left: '-9999px' }}>
                             <div ref={contentRef} style={{ width: '794px', backgroundColor: '#ffffff', color: '#1f2937', padding: '30px 40px', boxSizing: 'border-box' }} className="font-sans">
@@ -460,19 +487,20 @@ export default function RoteiroPage() {
                                 </div>
                                 <div style={{ width: '100%', textAlign: 'left' }}>
                                     <div style={{ color: '#1f2937', fontSize: '13px', lineHeight: '1.7', wordBreak: 'break-word' }}>
-                                        <div className="
-                                            [&_p]:mb-3 [&_p]:leading-relaxed
-                                            [&_h1]:text-xl [&_h1]:font-black [&_h1]:mb-4 [&_h1]:mt-6 [&_h1]:text-[#6C5DD3]
-                                            [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:mt-5 [&_h2]:text-[#6C5DD3]
-                                            [&_h3]:text-base [&_h3]:font-bold [&_h3]:mb-2 [&_h3]:mt-4 [&_h3]:text-[#6C5DD3]
-                                            [&_ul]:list-disc [&_ul]:ml-5 [&_ul]:mb-3 [&_ul_li]:mb-1
-                                            [&_ol]:list-decimal [&_ol]:ml-5 [&_ol]:mb-3 [&_ol_li]:mb-1
-                                            [&_strong]:font-bold [&_strong]:text-[#000000]
-                                            [&_hr]:my-6 [&_hr]:border-[#e5e7eb]
-                                            [&_h1]:break-after-avoid [&_h2]:break-after-avoid [&_h3]:break-after-avoid
-                                            [&_li]:break-inside-avoid
-                                        ">
-                                            <ReactMarkdown>{script}</ReactMarkdown>
+                                        <div style={{ color: '#000000', fontSize: '13px', lineHeight: '1.6' }}>
+                                            <ReactMarkdown 
+                                                components={{
+                                                    h1: ({node, ...props}) => <h1 style={{ color: '#6C5DD3', fontSize: '24px', fontWeight: '900', marginTop: '20px', marginBottom: '10px' }} {...props} />,
+                                                    h2: ({node, ...props}) => <h2 style={{ color: '#6C5DD3', fontSize: '20px', fontWeight: '900', marginTop: '15px', marginBottom: '8px' }} {...props} />,
+                                                    h3: ({node, ...props}) => <h3 style={{ color: '#6C5DD3', fontSize: '18px', fontWeight: 'bold', marginTop: '12px', marginBottom: '5px' }} {...props} />,
+                                                    p: ({node, ...props}) => <p style={{ marginBottom: '10px' }} {...props} />,
+                                                    strong: ({node, ...props}) => <strong style={{ fontWeight: 'bold' }} {...props} />,
+                                                    ul: ({node, ...props}) => <ul style={{ marginLeft: '20px', marginBottom: '10px', listStyleType: 'disc' }} {...props} />,
+                                                    li: ({node, ...props}) => <li style={{ marginBottom: '5px' }} {...props} />,
+                                                }}
+                                            >
+                                                {script}
+                                            </ReactMarkdown>
                                         </div>
                                     </div>
                                 </div>

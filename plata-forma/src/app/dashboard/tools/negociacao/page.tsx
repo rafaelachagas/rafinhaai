@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase/client';
 import { authFetch } from '@/lib/auth-fetch';
 import { Header } from '@/components/Header';
 import {
-    ArrowLeft, Send, Loader2, MessageSquare, RotateCcw, BarChart3, Bot, User, Settings2
+    ArrowLeft, Send, Loader2, MessageSquare, RotateCcw, BarChart3, Bot, User, Settings2, Download, Copy, Check
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
@@ -37,6 +37,14 @@ export default function NegociacaoPage() {
 
     const chatEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const feedbackRef = useRef<HTMLDivElement>(null);
+    const [downloadingPDF, setDownloadingPDF] = useState(false);
+    const [copied, setCopied] = useState(false);
+    const [pdfSettings, setPdfSettings] = useState({
+        logo: '',
+        footer: 'Documento gerado pelo App Profissão do Futuro.',
+        filename: 'Feedback_Negociacao'
+    });
 
     useEffect(() => {
         if (!themeLoading) {
@@ -49,9 +57,26 @@ export default function NegociacaoPage() {
             } else {
                 setLoading(false);
                 fetchUnreadCount();
+                fetchSettings();
             }
         }
     }, [profile, themeLoading, router]);
+
+    const fetchSettings = async () => {
+        try {
+            const { data } = await supabase.from('platform_settings').select('value').eq('key', 'pdf_settings').single();
+            if (data?.value) {
+                const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+                setPdfSettings({
+                    logo: parsed.logo_url || '',
+                    footer: parsed.footer_negociacao || parsed.footer_roteiro || 'Documento gerado pelo App Profissão do Futuro.',
+                    filename: parsed.filename_negociacao || 'Feedback_Negociacao'
+                });
+            }
+        } catch (e) {
+            console.error('Error fetching PDF settings:', e);
+        }
+    };
 
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -131,6 +156,34 @@ export default function NegociacaoPage() {
             setFeedback('Erro de conexão ao gerar feedback.');
         } finally {
             setLoadingFeedback(false);
+        }
+    };
+
+    const copyToClipboard = () => {
+        if (!feedback) return;
+        navigator.clipboard.writeText(feedback);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    const handleDownloadPDF = async () => {
+        if (!feedbackRef.current) return;
+        setDownloadingPDF(true);
+        try {
+            const html2pdf = (await import('html2pdf.js')).default;
+            const element = feedbackRef.current;
+            const opt = {
+                margin: 15,
+                filename: `${pdfSettings.filename}_${new Date().getTime()}.pdf`,
+                image: { type: 'jpeg' as const, quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+                jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
+            };
+            await html2pdf().set(opt).from(element).save();
+        } catch (error) {
+            console.error('Erro ao gerar PDF:', error);
+        } finally {
+            setDownloadingPDF(false);
         }
     };
 
@@ -256,15 +309,60 @@ export default function NegociacaoPage() {
                                         <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#10B981]">Feedback Completo</span>
                                         <h3 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>Sua análise de performance</h3>
                                     </div>
-                                    <button onClick={handleReset} className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#10B981] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#059669] transition-all shadow-lg shadow-[#10B981]/20">
-                                        <RotateCcw size={16} /> Nova Simulação
-                                    </button>
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <button 
+                                            onClick={handleDownloadPDF} 
+                                            disabled={downloadingPDF || !feedback}
+                                            className={`flex items-center gap-2 px-6 py-3 rounded-2xl ${isDark ? 'bg-white/5 border border-white/10 text-gray-300' : 'bg-gray-50 border border-gray-200 text-gray-600'} font-bold text-xs uppercase tracking-widest hover:scale-[1.02] transition-all disabled:opacity-50`}
+                                        >
+                                            {downloadingPDF ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                                            {downloadingPDF ? 'Gerando...' : 'Salvar PDF'}
+                                        </button>
+                                        <button 
+                                            onClick={copyToClipboard}
+                                            className={`flex items-center gap-2 px-6 py-3 rounded-2xl ${isDark ? 'bg-white/5 border border-white/10 text-gray-300' : 'bg-gray-50 border border-gray-200 text-gray-600'} font-bold text-xs uppercase tracking-widest hover:scale-[1.02] transition-all`}
+                                        >
+                                            {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                                            {copied ? 'Copiado!' : 'Copiar'}
+                                        </button>
+                                        <button onClick={handleReset} className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#10B981] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#059669] transition-all shadow-lg shadow-[#10B981]/20">
+                                            <RotateCcw size={16} /> Nova Simulação
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className={`p-8 rounded-[2rem] border ${isDark ? 'bg-black/30 border-white/5' : 'bg-gray-50 border-gray-100'}`}>
                                     <div className={`prose max-w-none ${isDark ? 'prose-invert' : ''} prose-emerald font-medium leading-relaxed
                                         [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:bg-transparent [&_pre]:p-0
                                         [&_code]:break-words [&_code]:whitespace-pre-wrap [&_code]:bg-transparent [&_code]:p-0`}>
                                         <ReactMarkdown>{feedback}</ReactMarkdown>
+                                    </div>
+                                </div>
+
+                                {/* PDF Hidden Container */}
+                                <div style={{ display: 'none', position: 'absolute' }}>
+                                    <div ref={feedbackRef} style={{ width: '794px', padding: '40px', background: 'white', color: '#000000', fontFamily: 'sans-serif' }}>
+                                        {pdfSettings.logo && <img src={pdfSettings.logo} crossOrigin="anonymous" style={{ height: '50px', marginBottom: '20px' }} />}
+                                        <div style={{ fontSize: '13px', lineHeight: '1.6' }}>
+                                            <h1 style={{ color: '#10B981', fontSize: '24px', fontWeight: '900', marginTop: '20px', marginBottom: '10px' }}>Feedback de Negociação</h1>
+                                            <div style={{ marginBottom: '20px', padding: '15px', background: '#f8fdfa', borderRadius: '10px', border: '1px solid #e1f5e9' }}>
+                                                <p style={{ margin: 0, fontSize: '12px' }}><strong>Produto:</strong> {contexto.produto}</p>
+                                                <p style={{ margin: 0, fontSize: '12px' }}><strong>Dificuldade:</strong> {contexto.dificuldade}</p>
+                                            </div>
+                                            <ReactMarkdown 
+                                                components={{
+                                                    h1: ({node, ...props}) => <h1 style={{ color: '#10B981', fontSize: '20px', fontWeight: '900', marginTop: '20px', marginBottom: '10px' }} {...props} />,
+                                                    h2: ({node, ...props}) => <h2 style={{ color: '#10B981', fontSize: '18px', fontWeight: '900', marginTop: '15px', marginBottom: '8px' }} {...props} />,
+                                                    h3: ({node, ...props}) => <h3 style={{ color: '#10B981', fontSize: '16px', fontWeight: 'bold', marginTop: '12px', marginBottom: '5px' }} {...props} />,
+                                                    p: ({node, ...props}) => <p style={{ marginBottom: '10px' }} {...props} />,
+                                                    strong: ({node, ...props}) => <strong style={{ fontWeight: 'bold' }} {...props} />,
+                                                    ul: ({node, ...props}) => <ul style={{ marginLeft: '20px', marginBottom: '10px', listStyleType: 'disc' }} {...props} />,
+                                                    li: ({node, ...props}) => <li style={{ marginBottom: '5px' }} {...props} />,
+                                                }}
+                                            >
+                                                {feedback}
+                                            </ReactMarkdown>
+                                        </div>
+                                        <p style={{ marginTop: '40px', fontSize: '10px', color: '#666' }}>{pdfSettings.footer}</p>
                                     </div>
                                 </div>
                             </>

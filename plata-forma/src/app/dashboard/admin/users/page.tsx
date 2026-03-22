@@ -57,6 +57,13 @@ export default function UserManagementPage() {
     const [formLoading, setFormLoading] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
 
+    // Selection states
+    const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+    const [selectedUserForFicha, setSelectedUserForFicha] = useState<Profile | null>(null);
+    const [termsHistory, setTermsHistory] = useState<any[]>([]);
+    const [userNotes, setUserNotes] = useState<any[]>([]);
+    const [loadingNotes, setLoadingNotes] = useState(false);
+
     // Edit states
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<Profile | null>(null);
@@ -162,15 +169,47 @@ export default function UserManagementPage() {
         user.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const toggleSelectUser = (id: string) => {
+        if (selectedUserIds.includes(id)) {
+            setSelectedUserIds(selectedUserIds.filter(uid => uid !== id));
+        } else {
+            setSelectedUserIds([...selectedUserIds, id]);
+        }
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedUserIds.length === filteredUsers.length) {
+            setSelectedUserIds([]);
+        } else {
+            setSelectedUserIds(filteredUsers.map(u => u.id));
+        }
+    };
+
+    const openStudentProfile = async (u: Profile) => {
+        setSelectedUserForFicha(u);
+        setLoadingNotes(true);
+        const { data: notes } = await supabase.from('crm_notes').select('*').eq('user_id', u.id).order('created_at', { ascending: false });
+        if (notes) setUserNotes(notes);
+        
+        const { data: history } = await supabase.from('terms_accepted_logs').select('*, terms_versions(*)').eq('user_id', u.id).order('accepted_at', { ascending: false });
+        if (history) setTermsHistory(history);
+        setLoadingNotes(false);
+    };
+
     const handleExportCSV = () => {
-        const headers = ['Nome', 'Email', 'CPF', 'Cargo', 'Data de Cadastro'];
+        const usersToExport = selectedUserIds.length > 0 
+            ? users.filter(u => selectedUserIds.includes(u.id))
+            : filteredUsers;
+
+        const headers = ['Nome', 'Email', 'CPF', 'Telefone', 'Cargo', 'Data de Cadastro'];
         const csvRows = [
             headers.join(','),
-            ...filteredUsers.map(user => {
+            ...usersToExport.map(user => {
                 return [
                     `"${user.full_name || ''}"`,
                     `"${user.email || ''}"`,
                     `"${user.cpf || ''}"`,
+                    `"${user.phone || ''}"`,
                     `"${user.role}"`,
                     `"${new Date(user.created_at).toLocaleDateString()}"`
                 ].join(',');
@@ -178,10 +217,8 @@ export default function UserManagementPage() {
         ];
 
         const csvContent = csvRows.join('\n');
-        // Adicionando BOM para corrigir acentuação no Excel
         const bom = '\uFEFF';
         const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
-
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.setAttribute('href', url);
@@ -250,37 +287,45 @@ export default function UserManagementPage() {
                 {/* Content Table/Grid */}
                 <div className={`${isDark ? 'bg-[#1B1D21] border-white/5' : 'bg-white border-gray-100'} rounded-3xl border shadow-sm overflow-hidden transition-colors duration-300`}>
                     <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="relative flex-1 max-w-md">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                            <input
-                                type="text"
-                                placeholder="Filtrar por nome ou e-mail..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className={`w-full ${isDark ? 'bg-[#0F0F0F] border-white/5 text-white' : 'bg-gray-50 border-gray-100'} border rounded-xl py-2.5 pl-11 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF754C]/20 transition-all`}
-                            />
-                        </div>
-                        <div className="flex gap-2">
+                            <div className="relative flex-1 max-w-sm">
+                                <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                <select 
+                                    className={`w-full appearance-none ${isDark ? 'bg-[#0F0F0F] border-white/5 text-white' : 'bg-gray-50 border-gray-100'} border rounded-xl py-2.5 pl-11 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF754C]/20 transition-all`}
+                                >
+                                    <option value="">Todos os Produtos</option>
+                                    <option value="approved">Status: Aprovado</option>
+                                    <option value="revoked">Status: Estornado</option>
+                                </select>
+                            </div>
                             <button
                                 onClick={handleExportCSV}
-                                className={`p-3 rounded-xl border flex items-center gap-2 transition-colors ${isDark ? 'bg-[#0A0113] border-white/10 hover:bg-white/5 text-gray-400' : 'bg-gray-50 border-gray-100 hover:bg-gray-100 text-gray-500'}`}
+                                className={`p-3 rounded-xl border flex items-center gap-2 transition-all ${selectedUserIds.length > 0 ? 'bg-[#FF754C] border-[#FF754C] text-white shadow-lg' : isDark ? 'bg-[#0A0113] border-white/10 hover:bg-white/5 text-gray-400' : 'bg-gray-50 border-gray-100 hover:bg-gray-100 text-gray-500'}`}
                                 title="Exportar para CSV"
                             >
                                 <Download size={18} />
-                                <span className="hidden sm:inline">Exportar</span>
+                                <span className="hidden sm:inline">
+                                    {selectedUserIds.length > 0 ? `Exportar (${selectedUserIds.length})` : 'Exportar Tudo'}
+                                </span>
                             </button>
                             <button className={`p-3 rounded-xl border flex items-center gap-2 transition-colors ${isDark ? 'bg-[#0A0113] border-white/10 text-gray-400' : 'bg-gray-50 border-gray-100 text-gray-500'}`}>
                                 <Filter size={18} />
                                 Filtros
                             </button>
-                        </div>
                     </div>
 
                     {/* Users List */}
-                    <div className="overflow-x-auto mt-2">
+                    <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-50 text-gray-500'}`}>
                                 <tr>
+                                    <th className="px-6 py-4 w-10">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedUserIds.length === filteredUsers.length && filteredUsers.length > 0}
+                                            onChange={toggleSelectAll}
+                                            className="rounded border-gray-300 text-[#FF754C] focus:ring-[#FF754C]"
+                                        />
+                                    </th>
                                     <th className="px-6 py-4">Usuário</th>
                                     <th className="px-6 py-4">Cargo</th>
                                     <th className="px-6 py-4">Cadastro</th>
@@ -289,7 +334,19 @@ export default function UserManagementPage() {
                             </thead>
                             <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-gray-100'}`}>
                                 {filteredUsers.map((user) => (
-                                    <tr key={user.id} className={`transition-colors ${isDark ? 'hover:bg-white/[0.02]' : 'hover:bg-gray-50'}`}>
+                                    <tr 
+                                        key={user.id} 
+                                        onClick={() => openStudentProfile(user)}
+                                        className={`transition-colors cursor-pointer ${isDark ? 'hover:bg-white/[0.02]' : 'hover:bg-gray-50'} ${selectedUserIds.includes(user.id) ? (isDark ? 'bg-[#FF754C]/5' : 'bg-[#FF754C]/5') : ''}`}
+                                    >
+                                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedUserIds.includes(user.id)}
+                                                onChange={() => toggleSelectUser(user.id)}
+                                                className="rounded border-gray-300 text-[#FF754C] focus:ring-[#FF754C]"
+                                            />
+                                        </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF754C] to-[#7D1AB8] flex items-center justify-center text-white font-bold text-sm">
@@ -566,6 +623,55 @@ export default function UserManagementPage() {
                                     </button>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Ficha do Aluno Modal */}
+                {selectedUserForFicha && (
+                    <div className="fixed inset-0 z-50 flex justify-end">
+                        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSelectedUserForFicha(null)} />
+                        <div className={`relative w-full max-w-lg h-full shadow-2xl animate-in slide-in-from-right duration-300 ${isDark ? 'bg-[#0F0F0F] border-l border-white/10' : 'bg-white border-l border-gray-200'}`}>
+                             <div className="p-6 border-b flex items-center justify-between sticky top-0 z-10">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#FF754C] to-[#7D1AB8] flex items-center justify-center text-white font-bold text-lg">
+                                        {(selectedUserForFicha.full_name || selectedUserForFicha.email || '?')[0].toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <h3 className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{selectedUserForFicha.full_name}</h3>
+                                        <p className="text-xs text-gray-500">{selectedUserForFicha.email}</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setSelectedUserForFicha(null)} className="p-2 rounded-full hover:bg-gray-100"><X size={20}/></button>
+                             </div>
+                             <div className="p-6 overflow-y-auto h-[calc(100%-80px)] space-y-8">
+                                 <div>
+                                     <h4 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4">Ações Rápidas</h4>
+                                     <div className="grid grid-cols-2 gap-3">
+                                         <a 
+                                            href={`https://wa.me/${selectedUserForFicha.phone?.replace(/\D/g, '')}`} 
+                                            target="_blank" 
+                                            className="flex items-center justify-center gap-2 p-4 bg-[#25D366] text-white rounded-2xl font-bold text-sm"
+                                         >
+                                            Chamar Whats
+                                         </a>
+                                         <button onClick={() => { handleEditClick(selectedUserForFicha); setSelectedUserForFicha(null); }} className="flex items-center justify-center gap-2 p-4 bg-gray-100 text-gray-700 rounded-2xl font-bold text-sm">
+                                            Editar Dados
+                                         </button>
+                                     </div>
+                                 </div>
+                                 
+                                 {/* Histórico Simples */}
+                                 <div className="space-y-4">
+                                     <h4 className="text-xs font-bold uppercase tracking-widest text-gray-500">Histórico de Aceite</h4>
+                                     {termsHistory.map(log => (
+                                         <div key={log.id} className="p-4 border rounded-xl text-xs">
+                                             <p className="font-bold">Versão {log.terms_versions?.version_number}</p>
+                                             <p className="text-gray-500">Aceito em {new Date(log.accepted_at).toLocaleString()}</p>
+                                         </div>
+                                     ))}
+                                 </div>
+                             </div>
                         </div>
                     </div>
                 )}

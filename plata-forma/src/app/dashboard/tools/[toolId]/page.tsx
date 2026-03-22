@@ -393,21 +393,23 @@ export default function DynamicToolPage() {
         setTimeout(() => setCopied(false), 2000);
     }
 
-    const handleDownloadPDF = async () => {
-        if (!contentRef.current) return;
+    const handleDownloadPDF = async (contentToDownload?: string) => {
+        const textToRender = contentToDownload || result;
+        if (!textToRender) return;
         setDownloadingPDF(true);
         
         try {
             const html2pdf = (await import('html2pdf.js')).default;
             const element = contentRef.current;
-            element.classList.add('pdf-mode');
+            if (!element) return;
 
+            // Setup proper content for the hidden element before capturing
             const opt: any = {
-                margin: [15, 15, 20, 15],
-                filename: pdfSettings.filename ? `${pdfSettings.filename}_${new Date().getTime()}.pdf` : `${config.title}_${new Date().getTime()}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
+                margin: 15,
+                filename: pdfSettings.filename ? `${pdfSettings.filename}_${new Date().getTime()}.pdf` : `${config.title || 'UGC_Content'}_${new Date().getTime()}.pdf`,
+                image: { type: 'jpeg' as const, quality: 0.98 },
                 html2canvas: { scale: 2, useCORS: true, letterRendering: true },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
             };
 
             await html2pdf().set(opt).from(element).save();
@@ -415,9 +417,6 @@ export default function DynamicToolPage() {
             console.error('Erro ao gerar PDF:', error);
             alert('Erro ao gerar o PDF. Tente novamente.');
         } finally {
-            if (contentRef.current) {
-                contentRef.current.classList.remove('pdf-mode');
-            }
             setDownloadingPDF(false);
         }
     };
@@ -781,7 +780,7 @@ export default function DynamicToolPage() {
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                     <button
-                                        onClick={handleDownloadPDF}
+                                        onClick={() => handleDownloadPDF()}
                                         disabled={downloadingPDF}
                                         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${isDark
                                             ? 'bg-white/5 text-gray-300 hover:bg-white/10'
@@ -811,29 +810,34 @@ export default function DynamicToolPage() {
                                 </div>
                             </div>
 
-                            <div className="bg-[#f8f9fa] dark:bg-[#111315] rounded-2xl p-4 sm:p-8" ref={contentRef}>
-                                {/* Header do PDF */}
-                                <div className="pdf-only hidden mb-8 pb-6 border-b border-gray-200">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            {pdfSettings?.logo && (
-                                                <img src={pdfSettings.logo} alt="Logo" className="max-h-8 object-contain" crossOrigin="anonymous" />
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div
-                                    className={`prose prose-sm lg:prose-base max-w-none ${isDark
-                                        ? 'prose-invert prose-p:text-gray-300 prose-headings:text-white prose-strong:text-white prose-li:text-gray-300'
-                                        : 'prose-p:text-gray-600 prose-headings:text-gray-900 prose-strong:text-gray-900 prose-li:text-gray-600'
-                                        }`}
-                                >
-                                    <ReactMarkdown>{result}</ReactMarkdown>
-                                </div>
+                            <div className={`prose prose-sm lg:prose-base max-w-none ${isDark
+                                ? 'prose-invert prose-p:text-gray-300 prose-headings:text-white prose-strong:text-white prose-li:text-gray-300'
+                                : 'prose-p:text-gray-600 prose-headings:text-gray-900 prose-strong:text-gray-900 prose-li:text-gray-600'
+                                }`}
+                            >
+                                <ReactMarkdown>{result}</ReactMarkdown>
+                            </div>
 
-                                {/* Footer do PDF */}
-                                <div className="pdf-only hidden mt-12 pt-6 border-t border-gray-200">
-                                    <p className="text-center text-sm text-gray-500">{pdfSettings?.footer}</p>
+                            {/* Premium PDF Container (Hidden) */}
+                            <div style={{ display: 'none', position: 'absolute', top: '-9999px' }}>
+                                <div ref={contentRef} style={{ width: '794px', padding: '40px', background: 'white', color: '#000000', fontFamily: 'sans-serif' }}>
+                                    {pdfSettings.logo && <img src={pdfSettings.logo} crossOrigin="anonymous" style={{ height: '50px', marginBottom: '20px' }} />}
+                                    <div style={{ fontSize: '13px', lineHeight: '1.6' }}>
+                                        <ReactMarkdown 
+                                            components={{
+                                                h1: ({node, ...props}) => <h1 style={{ color: config.color, fontSize: '24px', fontWeight: '900', marginTop: '20px', marginBottom: '10px' }} {...props} />,
+                                                h2: ({node, ...props}) => <h2 style={{ color: config.color, fontSize: '20px', fontWeight: '900', marginTop: '15px', marginBottom: '8px' }} {...props} />,
+                                                h3: ({node, ...props}) => <h3 style={{ color: config.color, fontSize: '18px', fontWeight: 'bold', marginTop: '12px', marginBottom: '5px' }} {...props} />,
+                                                p: ({node, ...props}) => <p style={{ marginBottom: '10px' }} {...props} />,
+                                                strong: ({node, ...props}) => <strong style={{ fontWeight: 'bold' }} {...props} />,
+                                                ul: ({node, ...props}) => <ul style={{ marginLeft: '20px', marginBottom: '10px', listStyleType: 'disc' }} {...props} />,
+                                                li: ({node, ...props}) => <li style={{ marginBottom: '5px' }} {...props} />,
+                                            }}
+                                        >
+                                            {result}
+                                        </ReactMarkdown>
+                                    </div>
+                                    <p style={{ marginTop: '40px', fontSize: '10px', color: '#666' }}>{pdfSettings.footer}</p>
                                 </div>
                             </div>
                         </div>
@@ -859,16 +863,30 @@ export default function DynamicToolPage() {
                                         <p className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                                             Gerado em {new Date(item.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                         </p>
-                                        <button
-                                            onClick={() => copyHistoryToClipboard(item.output_content, item.id)}
-                                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${isDark
-                                                ? 'bg-white/5 text-gray-300 hover:bg-white/10'
-                                                : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
-                                                }`}
-                                        >
-                                            {copied === item.id ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-                                            {copied === item.id ? 'Copiado!' : 'Copiar'}
-                                        </button>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => {
+                                                    setResult(item.output_content);
+                                                    setActiveTab('novo');
+                                                }}
+                                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${isDark
+                                                    ? 'bg-white/5 text-[#6C5DD3] hover:bg-white/10'
+                                                    : 'bg-white border border-gray-200 text-[#6C5DD3] hover:bg-gray-50'
+                                                    }`}
+                                            >
+                                                Ver Detalhes
+                                            </button>
+                                            <button
+                                                onClick={() => copyHistoryToClipboard(item.output_content, item.id)}
+                                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${isDark
+                                                    ? 'bg-white/5 text-gray-300 hover:bg-white/10'
+                                                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
+                                                    }`}
+                                            >
+                                                {copied === item.id ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                                                {copied === item.id ? 'Copiado!' : 'Copiar'}
+                                            </button>
+                                        </div>
                                     </div>
                                     <div className="bg-[#f8f9fa] dark:bg-[#111315] rounded-2xl p-4 sm:p-6 overflow-x-auto">
                                         <div

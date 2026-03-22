@@ -6,9 +6,17 @@ import { useTheme } from '@/context/ThemeContext';
 import { supabase } from '@/lib/supabase/client';
 import { Header } from '@/components/Header';
 import {
-    Sparkles, Loader2, Copy, Check, ArrowLeft, BarChart3, Eye, Send, Download, History, Plus
+    Sparkles, PenTool, Loader2, Copy, Check, ArrowLeft, ArrowRight,
+    Target, Monitor, Megaphone, Eye, Download, History, Plus, BarChart3
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+
+const STEPS = [
+    { id: 'nicho', label: 'Nicho', icon: Target, question: 'Qual o seu nicho ou tema do vídeo?', placeholder: 'Ex: Marketing, Fitness, Viagens...', type: 'text' },
+    { id: 'plataforma', label: 'Plataforma', icon: Monitor, question: 'Para qual plataforma é o roteiro?', placeholder: '', type: 'select', options: ['Instagram', 'TikTok', 'YouTube', 'Stories', 'LinkedIn'] },
+    { id: 'objetivo', label: 'Objetivo', icon: Megaphone, question: 'Qual o objetivo do vídeo?', placeholder: '', type: 'select', options: ['Vendas', 'Engajamento', 'Autoridade', 'Leads', 'Viralizar'] },
+    { id: 'roteiro', label: 'Roteiro', icon: PenTool, question: 'Cole seu roteiro para análise:', placeholder: 'Cole aqui o texto completo...', type: 'textarea' },
+];
 
 export default function AnalisePage() {
     const router = useRouter();
@@ -18,17 +26,20 @@ export default function AnalisePage() {
     const [recentMessages, setRecentMessages] = useState<any[]>([]);
     const [notificationsOpen, setNotificationsOpen] = useState(false);
 
-    const [roteiro, setRoteiro] = useState('');
-    const [plataforma, setPlataforma] = useState('');
-    const [objetivo, setObjetivo] = useState('');
+    const [currentStep, setCurrentStep] = useState(0);
+    const [formData, setFormData] = useState<Record<string, string>>({
+        nicho: '', plataforma: '', objetivo: '', roteiro: ''
+    });
+
     const [generating, setGenerating] = useState(false);
     const [analise, setAnalise] = useState('');
     const [copied, setCopied] = useState(false);
+    const [downloadingPDF, setDownloadingPDF] = useState(false);
     const [activeTab, setActiveTab] = useState<'novo' | 'historico'>('novo');
     const [history, setHistory] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
-    const [downloadingPDF, setDownloadingPDF] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
+
     const [pdfSettings, setPdfSettings] = useState({
         logo: '/logo-original-si.png',
         footer: 'Análise gerada pelo App Profissão do Futuro.'
@@ -60,12 +71,9 @@ export default function AnalisePage() {
                     footer: parsed.footer_analise || 'Análise gerada pelo App Profissão do Futuro.'
                 });
             }
-        } catch (e) {
-            // Settings not initialized yet
-        }
+        } catch (e) {}
     };
 
-    
     const fetchHistory = async () => {
         if (!profile?.id) return;
         setLoadingHistory(true);
@@ -75,7 +83,6 @@ export default function AnalisePage() {
             .eq('user_id', profile.id)
             .eq('tool_type', 'analise')
             .order('created_at', { ascending: false });
-        
         if (data) setHistory(data);
         setLoadingHistory(false);
     };
@@ -92,33 +99,54 @@ export default function AnalisePage() {
         if (count !== null) setUnreadCount(count);
     }
 
-    const handleAnalyze = async () => {
-        if (!roteiro.trim()) return;
-        setGenerating(true);
-        try {
-            const res = await fetch('/api/ai/analise', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ roteiro, plataforma, objetivo }),
-            });
-            const data = await res.json();
-            if (data.analise) setAnalise(data.analise);
-            if (profile?.id) {
-                await supabase.from('ai_content_history').insert([{ user_id: profile.id, tool_type: 'analise', input_data: { roteiro, plataforma, objetivo }, output_content: data.analise }]);
-            }
-            else setAnalise('Erro ao analisar roteiro. Tente novamente.');
-        } catch {
-            setAnalise('Erro de conexão. Verifique sua internet e tente novamente.');
-        } finally {
-            setGenerating(false);
-        }
+    const currentField = STEPS[currentStep];
+    const canProceed = !!(formData[currentField?.id]?.toString().trim());
+
+    const handleNext = () => {
+        if (currentStep < STEPS.length - 1) setCurrentStep(currentStep + 1);
+        else handleGenerate();
     };
 
-    const handleReset = () => { setRoteiro(''); setPlataforma(''); setObjetivo(''); setAnalise(''); setActiveTab('novo'); };
+    const handleBack = () => { if (currentStep > 0) setCurrentStep(currentStep - 1); };
 
-        const copyToClipboard = () => {
-        const textToCopy = `${analise}\n\n---\nAnálise gerada pelo App Profissão do Futuro.`;
-        navigator.clipboard.writeText(textToCopy);
+    const handleGenerate = async () => {
+        setGenerating(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const res = await fetch('/api/ai/analise', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify(formData),
+            });
+            const data = await res.json();
+            if (data.analise) {
+                setAnalise(data.analise);
+                if (profile?.id) {
+                    const { data: curr } = await supabase.from('profiles').select('ai_tools_used').eq('id', profile.id).single();
+                    await supabase.from('profiles').update({ 
+                        ai_tools_used: (curr?.ai_tools_used || 0) + 1 
+                    }).eq('id', profile.id);
+
+                    await supabase.from('ai_content_history').insert([{
+                        user_id: profile.id, tool_type: 'analise', input_data: formData, output_content: data.analise
+                    }]);
+                }
+            } else setAnalise(data.error || 'Erro ao analisar. Tente novamente.');
+        } catch { setAnalise('Erro de conexão.'); }
+        finally { setGenerating(false); }
+    };
+
+    const handleReset = () => {
+        setCurrentStep(0);
+        setFormData({ nicho: '', plataforma: '', objetivo: '', roteiro: '' });
+        setAnalise('');
+    };
+
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(analise);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
@@ -129,24 +157,18 @@ export default function AnalisePage() {
         try {
             const html2pdf = (await import('html2pdf.js')).default;
             const element = contentRef.current;
-            if (element.parentElement) element.parentElement.style.display = 'block';
-            
+            const container = element.parentElement;
+            if (container) container.style.display = 'block';
             const opt = {
-                margin:       [10, 0, 10, 0] as [number, number, number, number],
-                filename:     'Analise_Gerada_IA.pdf',
-                image:        { type: 'jpeg' as const, quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true, windowWidth: 794, letterRendering: true },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
-                pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+                margin: 10,
+                filename: 'Analise_Roteiro.pdf',
+                image: { type: 'jpeg' as const, quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, windowWidth: 794 },
+                jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
             };
-            
             await html2pdf().set(opt).from(element).save();
-            if (element.parentElement) element.parentElement.style.display = 'none';
-        } catch (error) {
-            console.error('Erro ao gerar PDF', error);
-        } finally {
-            setDownloadingPDF(false);
-        }
+            if (container) container.style.display = 'none';
+        } finally { setDownloadingPDF(false); }
     };
 
     if (loading || themeLoading) return null;
@@ -155,212 +177,115 @@ export default function AnalisePage() {
         <div className="flex flex-col xl:flex-row gap-8 max-w-[1600px] mx-auto w-full">
             <main className="flex-1 p-4 lg:p-8 flex flex-col gap-8 w-full min-w-0">
                 <Header profile={profile} unreadCount={unreadCount} onNotificationToggle={() => setNotificationsOpen(!notificationsOpen)} showProfile={true} notificationsOpen={notificationsOpen} recentMessages={recentMessages} />
-
-                {/* Back Button */}
-                <button onClick={() => router.push('/dashboard/tools')} className={`inline-flex items-center gap-3 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-[#6C5DD3]'} font-bold text-sm uppercase tracking-widest transition-all group w-fit`}>
-                    <div className={`w-10 h-10 rounded-xl ${isDark ? 'bg-white/5 border-white/5' : 'bg-white border-gray-100'} border flex items-center justify-center group-hover:bg-[#6C5DD3]/10 group-hover:border-[#6C5DD3]/20 transition-all`}>
+                
+                <button onClick={() => router.push('/dashboard/tools')} className={`inline-flex items-center gap-3 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-[#FF754C]'} font-bold text-sm uppercase tracking-widest transition-all group w-fit`}>
+                    <div className={`w-10 h-10 rounded-xl ${isDark ? 'bg-white/5 border-white/5' : 'bg-white border-gray-100'} border flex items-center justify-center group-hover:bg-[#FF754C]/10 group-hover:border-[#FF754C]/20 transition-all`}>
                         <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
                     </div>
-                    Voltar para Ferramentas
+                    Voltar
                 </button>
 
-                {/* Page Title */}
-                
                 <div className="flex flex-col gap-6">
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-2 text-[#FF754C] font-black text-[10px] uppercase tracking-[0.4em]">
-                                <Eye size={12} /> Análise Inteligente
-                            </div>
-                            <h1 className={`text-4xl lg:text-5xl font-extrabold tracking-tight ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>
-                                Análise de <span className="text-[#FF754C]">Roteiro</span>
-                            </h1>
-                            <p className="text-gray-400 font-medium max-w-lg">
-                                Cole seu roteiro abaixo e receba uma análise detalhada com nota, pontos fortes, melhorias e uma versão otimizada.
-                            </p>
-                        </div>
+                    <div className="flex items-center gap-2 text-[#FF754C] font-black text-[10px] uppercase tracking-[0.4em]">
+                        <BarChart3 size={12} /> Análise Inteligente
                     </div>
-                    {/* Tabs */}
                     <div className="flex items-center gap-4">
-                        <button onClick={() => setActiveTab('novo')} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm transition-all ${activeTab === 'novo' ? 'bg-[#FF754C] text-white shadow-lg shadow-[#FF754C]/30' : isDark ? 'bg-white/5 text-gray-400 hover:text-white' : 'bg-gray-100 text-gray-500 hover:text-gray-900'}`}>
-                            <Plus size={18} /> Nova Análise
+                        <button onClick={() => setActiveTab('novo')} className={`px-6 py-3 rounded-2xl font-bold text-sm transition-all ${activeTab === 'novo' ? 'bg-[#FF754C] text-white shadow-lg' : isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+                            Nova Análise
                         </button>
-                        <button onClick={() => setActiveTab('historico')} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm transition-all ${activeTab === 'historico' ? 'bg-[#FF754C] text-white shadow-lg shadow-[#FF754C]/30' : isDark ? 'bg-white/5 text-gray-400 hover:text-white' : 'bg-gray-100 text-gray-500 hover:text-gray-900'}`}>
-                            <History size={18} /> Histórico
+                        <button onClick={() => setActiveTab('historico')} className={`px-6 py-3 rounded-2xl font-bold text-sm transition-all ${activeTab === 'historico' ? 'bg-[#FF754C] text-white shadow-lg' : isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+                            Histórico
                         </button>
                     </div>
                 </div>
 
                 {activeTab === 'historico' ? (
-                                        <div className={`p-8 rounded-[2.5rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'}`}>
-                        <h2 className={`text-2xl font-bold mb-6 ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>Seu Histórico</h2>
-                        {loadingHistory ? (
-                            <div className="flex items-center justify-center p-12">
-                                <Loader2 className="w-8 h-8 text-[#6C5DD3] animate-spin" />
-                            </div>
-                        ) : history.length === 0 ? (
-                            <div className="text-center p-12 text-gray-500 font-medium">
-                                Você ainda não gerou nenhum histórico.
-                            </div>
+                   <div className={`p-8 rounded-[2.5rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'}`}>
+                      {loadingHistory ? <Loader2 className="animate-spin mx-auto" /> : history.length === 0 ? <p>Vazio</p> : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {history.map(item => (
+                                  <div key={item.id} className="p-6 border rounded-2xl">
+                                      <p className="font-bold">{new Date(item.created_at).toLocaleDateString()}</p>
+                                      <button onClick={() => { setAnalise(item.output_content); setActiveTab('novo'); }} className="mt-4 text-[#FF754C] font-bold">Ver</button>
+                                  </div>
+                              ))}
+                          </div>
+                      )}
+                   </div>
+                ) : analise || generating ? (
+                    <div className={`p-10 rounded-[2.5rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'} min-h-[500px] relative`}>
+                        {generating ? (
+                           <div className="flex flex-col items-center justify-center h-full gap-4">
+                               <Loader2 className="animate-spin text-[#FF754C] w-12 h-12" />
+                               <p className="font-bold text-[#FF754C]">ANALISANDO...</p>
+                           </div>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {history.map((item) => (
-                                    <div key={item.id} className={`p-6 rounded-2xl border ${isDark ? 'bg-white/5 border-white/10 hover:bg-white/10' : 'bg-gray-50 border-gray-200 hover:shadow-md'} transition-all flex flex-col justify-between`}>
-                                        <div className="mb-4">
-                                            <h3 className={`font-bold text-lg mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>Geração de {new Date(item.created_at).toLocaleDateString('pt-BR')}</h3>
-                                            <p className="text-sm text-gray-500">{new Date(item.created_at).toLocaleTimeString('pt-BR')}</p>
-                                        </div>
-                                        <button 
-                                            onClick={() => {
-                                                setAnalise(item.output_content);
-                                                setActiveTab('novo');
-                                            }}
-                                            className={`w-full py-3 ${isDark ? 'bg-white/5 hover:bg-[#6C5DD3] text-white' : 'bg-white border border-gray-200 hover:border-[#6C5DD3] hover:text-[#6C5DD3] text-gray-700'} font-bold text-sm rounded-xl transition-all`}
-                                        >
-                                            Visualizar
-                                        </button>
+                            <div className="space-y-6">
+                                <div className="flex justify-between items-center">
+                                   <h2 className="text-2xl font-bold">Sua Análise</h2>
+                                    <div className="flex gap-2">
+                                        <button onClick={downloadPDF} className="p-2 border rounded-xl"><Download size={20}/></button>
+                                        <button onClick={copyToClipboard} className="p-2 border rounded-xl"><Copy size={20}/></button>
+                                        <button onClick={handleReset} className="bg-[#FF754C] text-white px-4 py-2 rounded-xl">Novo</button>
                                     </div>
-                                ))}
+                                </div>
+                                <div className="prose max-w-none text-left">
+                                    <ReactMarkdown>{analise}</ReactMarkdown>
+                                </div>
                             </div>
                         )}
+                        <div style={{ display: 'none', position: 'absolute' }}>
+                             <div ref={contentRef} style={{ width: '794px', padding: '40px', background: 'white', color: '#000000', fontFamily: 'sans-serif' }}>
+                                 {pdfSettings.logo && <img src={pdfSettings.logo} crossOrigin="anonymous" style={{ height: '50px', marginBottom: '20px' }} />}
+                                 <div style={{ fontSize: '13px', lineHeight: '1.6' }}>
+                                    <ReactMarkdown 
+                                        components={{
+                                            h1: ({node, ...props}) => <h1 style={{ color: '#FF754C', fontSize: '24px', fontWeight: '900', marginTop: '20px', marginBottom: '10px' }} {...props} />,
+                                            h2: ({node, ...props}) => <h2 style={{ color: '#FF754C', fontSize: '20px', fontWeight: '900', marginTop: '15px', marginBottom: '8px' }} {...props} />,
+                                            h3: ({node, ...props}) => <h3 style={{ color: '#FF754C', fontSize: '18px', fontWeight: 'bold', marginTop: '12px', marginBottom: '5px' }} {...props} />,
+                                            p: ({node, ...props}) => <p style={{ marginBottom: '10px' }} {...props} />,
+                                            strong: ({node, ...props}) => <strong style={{ fontWeight: 'bold' }} {...props} />,
+                                            ul: ({node, ...props}) => <ul style={{ marginLeft: '20px', marginBottom: '10px', listStyleType: 'disc' }} {...props} />,
+                                            li: ({node, ...props}) => <li style={{ marginBottom: '5px' }} {...props} />,
+                                        }}
+                                    >
+                                        {analise}
+                                    </ReactMarkdown>
+                                 </div>
+                                 <p style={{ marginTop: '40px', fontSize: '10px', color: '#666' }}>{pdfSettings.footer}</p>
+                             </div>
+                        </div>
                     </div>
-                ) : generating || analise ? (
-                    <div className={`p-10 rounded-[2.5rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'} min-h-[500px] relative overflow-hidden`}>
-                        {generating ? (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-8 z-20">
-                                <div className="relative">
-                                    <div className="w-24 h-24 border-2 border-[#FF754C]/20 rounded-full animate-ping absolute inset-0"></div>
-                                    <div className="w-24 h-24 border-t-2 border-[#FF754C] rounded-full animate-spin relative z-10"></div>
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <BarChart3 className="text-[#FF754C] w-8 h-8 animate-pulse" />
-                                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        {/* Step indicators */}
+                        <div className="lg:col-span-3 space-y-4">
+                            {STEPS.map((step, i) => (
+                                <div key={step.id} className="flex items-center gap-3">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${i <= currentStep ? 'bg-[#FF754C] text-white' : 'bg-gray-200 text-gray-400'}`}>{i + 1}</div>
+                                    <span className="font-bold text-sm">{step.label}</span>
                                 </div>
-                                <div className="text-center space-y-2">
-                                    <p className="text-lg font-black tracking-widest text-[#FF754C] uppercase">Analisando Roteiro</p>
-                                    <p className="text-sm text-gray-400 font-medium">Buscando ganchos, métricas e oportunidades de ouro...</p>
-                                </div>
-                            </div>
-                        ) : analise ? (
-                            <div className="space-y-8">
-                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                    <div className="space-y-1">
-                                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#FF754C]">Análise Completa</span>
-                                        <h3 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>Resultado da sua análise</h3>
-                                    </div>
-                                    <div className="flex items-center gap-3 flex-wrap">
-                                        <button onClick={downloadPDF} disabled={downloadingPDF} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all border ${isDark ? 'bg-white/5 border-white/10 hover:bg-white/10 text-gray-300' : 'bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-700'} ${downloadingPDF ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                                            {downloadingPDF ? <><Loader2 size={16} className="animate-spin" /> Gerando PDF...</> : <><Download size={16} /> Salvar PDF</>}
-                                        </button>
-                                        <button onClick={copyToClipboard} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all border ${isDark ? 'bg-white/5 border-white/10 hover:bg-[#FF754C] hover:border-[#FF754C] hover:text-white text-gray-300' : 'bg-gray-50 border-gray-200 hover:bg-[#FF754C] hover:text-white text-gray-700'}`}>
-                                            {copied ? <><Check size={16} /> Copiado!</> : <><Copy size={16} /> Copiar</>}
-                                        </button>
-                                        <button onClick={handleReset} className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#FF754C] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#e5603c] transition-all shadow-lg shadow-[#FF754C]/20">
-                                            <Eye size={16} /> Nova Análise
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className={`p-8 rounded-[2rem] border ${isDark ? 'bg-black/30 border-white/5' : 'bg-gray-50 border-gray-100'}`}>
-                                    <div className={`prose max-w-none ${isDark ? 'text-gray-300' : 'text-gray-700'}
-                                        [&>p]:mb-6 [&>p]:leading-relaxed 
-                                        [&>h1]:text-3xl [&>h1]:font-black [&>h1]:mb-6 [&>h1]:mt-8 [&>h1]:text-[#FF754C]
-                                        [&>h2]:text-2xl [&>h2]:font-bold [&>h2]:mb-4 [&>h2]:mt-8 [&>h2]:text-[#FF754C]
-                                        [&>h3]:text-xl [&>h3]:font-bold [&>h3]:mb-3 [&>h3]:mt-6 
-                                        [&>ul]:list-disc [&>ul]:ml-6 [&>ul]:mb-6 [&>ul>li]:mb-2
-                                        [&>ol]:list-decimal [&>ol]:ml-6 [&>ol]:mb-6 [&>ol>li]:mb-2
-                                        [&_strong]:font-bold ${isDark ? '[&_strong]:text-white' : '[&_strong]:text-black'}
-                                        font-medium leading-relaxed`}>
-                                        <ReactMarkdown>{analise}</ReactMarkdown>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : null}
-                        {/* Hidden PDF container */}
-                        <div style={{ display: 'none', position: 'absolute', top: '-9999px', left: '-9999px' }}>
-                            <div ref={contentRef} style={{ width: '794px', backgroundColor: '#ffffff', color: '#1f2937', padding: '30px 40px', boxSizing: 'border-box' }} className="font-sans">
-                                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '30px', borderBottom: '2px solid #f3f4f6', paddingBottom: '20px' }}>
-                                    {pdfSettings.logo ? (
-                                        <img src={pdfSettings.logo} crossOrigin="anonymous" alt="Logo" style={{ height: '50px', objectFit: 'contain' }} />
-                                    ) : (
-                                        <div style={{ height: '50px' }}></div>
+                            ))}
+                        </div>
+                        <div className="lg:col-span-9">
+                           <div className={`p-10 rounded-[2.5rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'} min-h-[400px] flex flex-col justify-between`}>
+                                <div className="space-y-6">
+                                    <h2 className="text-3xl font-bold">{currentField.question}</h2>
+                                    {currentField.type === 'text' && <input type="text" value={formData[currentField.id]} onChange={e => setFormData({...formData, [currentField.id]: e.target.value})} className="w-full p-4 border rounded-xl bg-transparent" />}
+                                    {currentField.type === 'textarea' && <textarea rows={6} value={formData[currentField.id]} onChange={e => setFormData({...formData, [currentField.id]: e.target.value})} className="w-full p-4 border rounded-xl bg-transparent" />}
+                                    {currentField.type === 'select' && (
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {currentField.options?.map(opt => (
+                                                <button key={opt} onClick={() => setFormData({...formData, [currentField.id]: opt})} className={`p-4 border rounded-xl font-bold ${formData[currentField.id] === opt ? 'bg-[#FF754C] text-white border-[#FF754C]' : ''}`}>{opt}</button>
+                                            ))}
+                                        </div>
                                     )}
                                 </div>
-                                <div style={{ width: '100%', textAlign: 'left' }}>
-                                    <div style={{ color: '#1f2937', fontSize: '13px', lineHeight: '1.7', wordBreak: 'break-word' }}>
-                                        <div className="
-                                            [&_p]:mb-3 [&_p]:leading-relaxed
-                                            [&_h1]:text-xl [&_h1]:font-black [&_h1]:mb-4 [&_h1]:mt-6 [&_h1]:text-[#FF754C]
-                                            [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:mt-5 [&_h2]:text-[#FF754C]
-                                            [&_h3]:text-base [&_h3]:font-bold [&_h3]:mb-2 [&_h3]:mt-4 [&_h3]:text-[#FF754C]
-                                            [&_ul]:list-disc [&_ul]:ml-5 [&_ul]:mb-3 [&_ul_li]:mb-1
-                                            [&_ol]:list-decimal [&_ol]:ml-5 [&_ol]:mb-3 [&_ol_li]:mb-1
-                                            [&_strong]:font-bold [&_strong]:text-[#000000]
-                                            [&_hr]:my-6 [&_hr]:border-[#e5e7eb]
-                                            [&_h1]:break-after-avoid [&_h2]:break-after-avoid [&_h3]:break-after-avoid
-                                            [&_li]:break-inside-avoid
-                                        ">
-                                            <ReactMarkdown>{analise}</ReactMarkdown>
-                                        </div>
-                                    </div>
+                                <div className="flex justify-between mt-8">
+                                    <button onClick={handleBack} disabled={currentStep === 0} className="px-6 py-2 border rounded-xl disabled:opacity-20">Voltar</button>
+                                    <button onClick={handleNext} disabled={!canProceed} className="px-8 py-3 bg-[#FF754C] text-white font-bold rounded-xl disabled:opacity-50">Próximo</button>
                                 </div>
-                                <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #e5e7eb', textAlign: 'center', fontSize: '11px', fontWeight: '600', color: '#9ca3af' }}>
-                                    {pdfSettings.footer}
-                                </div>
-                            </div>
-                        </div></div>
-                ) : (
-/* ===== INPUT FORM ===== */
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                        <div className="lg:col-span-8">
-                            <div className={`p-8 rounded-[2.5rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'} space-y-6`}>
-                                <div className="space-y-3">
-                                    <label className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Cole seu roteiro aqui *</label>
-                                    <textarea
-                                        value={roteiro}
-                                        onChange={(e) => setRoteiro(e.target.value)}
-                                        placeholder="Cole o roteiro completo que você quer analisar..."
-                                        rows={14}
-                                        className={`w-full ${isDark ? 'bg-white/5 border-white/10 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-200 placeholder-gray-400'} border rounded-2xl px-6 py-5 text-sm font-medium outline-none focus:ring-2 focus:ring-[#FF754C]/40 transition-all resize-none`}
-                                    />
-                                    <p className="text-[10px] text-gray-400 font-medium">{roteiro.length} caracteres</p>
-                                </div>
-
-                                <button
-                                    onClick={handleAnalyze}
-                                    disabled={generating || !roteiro.trim()}
-                                    className="w-full py-5 rounded-2xl bg-gradient-to-r from-[#FF754C] to-[#FF5722] text-white font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:scale-[1.01] active:scale-[0.99] transition-all shadow-xl shadow-[#FF754C]/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {generating ? <Loader2 className="w-5 h-5 animate-spin" /> : <><BarChart3 size={20} /> Analisar Roteiro</>}
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="lg:col-span-4 space-y-6">
-                            <div className={`p-6 rounded-[2rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'} space-y-4`}>
-                                <label className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Plataforma (opcional)</label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {['Instagram', 'TikTok', 'YouTube', 'Stories'].map(opt => (
-                                        <button key={opt} onClick={() => setPlataforma(opt)} className={`px-4 py-3 rounded-xl text-xs font-bold transition-all border ${plataforma === opt ? 'bg-[#FF754C] border-[#FF754C] text-white shadow-lg shadow-[#FF754C]/20' : `${isDark ? 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-[#FF754C]/5'}`}`}>
-                                            {opt}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className={`p-6 rounded-[2rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'} space-y-4`}>
-                                <label className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Objetivo (opcional)</label>
-                                <div className="grid grid-cols-1 gap-2">
-                                    {['Vendas', 'Engajamento', 'Autoridade', 'Leads'].map(opt => (
-                                        <button key={opt} onClick={() => setObjetivo(opt)} className={`px-4 py-3 rounded-xl text-xs font-bold transition-all border ${objetivo === opt ? 'bg-[#FF754C] border-[#FF754C] text-white shadow-lg shadow-[#FF754C]/20' : `${isDark ? 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-[#FF754C]/5'}`}`}>
-                                            {opt}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className={`p-6 rounded-[2rem] border ${isDark ? 'bg-gradient-to-br from-[#FF754C]/5 to-transparent border-[#FF754C]/10' : 'bg-[#FF754C]/5 border-[#FF754C]/10'}`}>
-                                <h4 className={`font-bold text-sm mb-2 ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>💡 Dica</h4>
-                                <p className="text-xs text-gray-400 leading-relaxed">Cole seu roteiro completo, incluindo hooks, CTAs e indicações de cena. Quanto mais contexto, melhor a análise.</p>
-                            </div>
+                           </div>
                         </div>
                     </div>
                 )}

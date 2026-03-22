@@ -15,7 +15,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Preencha pelo menos o nicho e o público-alvo.' }, { status: 400 });
         }
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
         const fullPrompt = `
 Você é um especialista em branding pessoal e copywriting para Instagram. Você cria bios que convertem seguidores em clientes e transmitem autoridade instantânea.

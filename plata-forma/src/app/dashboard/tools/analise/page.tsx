@@ -6,73 +6,33 @@ import { useTheme } from '@/context/ThemeContext';
 import { supabase } from '@/lib/supabase/client';
 import { Header } from '@/components/Header';
 import {
-    Sparkles, 
-    Loader2, 
-    Copy, 
-    Check, 
-    ArrowLeft, 
-    BarChart3, 
-    Eye, 
-    Download, 
-    History, 
-    Plus,
-    Target,
-    Layout,
-    ChevronRight,
-    Search
+    Sparkles, Loader2, Copy, Check, ArrowLeft, BarChart3, Eye, Send, History, Download, Plus
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-
-const STEPS = [
-    { 
-        id: 'roteiro', 
-        title: 'Seu Roteiro', 
-        description: 'Cole o roteiro que deseja analisar',
-        icon: Eye
-    },
-    { 
-        id: 'plataforma', 
-        title: 'Plataforma', 
-        description: 'Onde este vídeo será postado?',
-        icon: Layout
-    },
-    { 
-        id: 'objetivo', 
-        title: 'Objetivo', 
-        description: 'O que você quer alcançar?',
-        icon: Target
-    }
-];
 
 export default function AnalisePage() {
     const router = useRouter();
     const { profile, loading: themeLoading, isDark } = useTheme();
-    
-    // UI States
     const [loading, setLoading] = useState(true);
     const [unreadCount, setUnreadCount] = useState(0);
     const [recentMessages, setRecentMessages] = useState<any[]>([]);
     const [notificationsOpen, setNotificationsOpen] = useState(false);
-    
-    // Content States
-    const [currentStep, setCurrentStep] = useState(0);
+
     const [roteiro, setRoteiro] = useState('');
     const [plataforma, setPlataforma] = useState('');
     const [objetivo, setObjetivo] = useState('');
     const [generating, setGenerating] = useState(false);
     const [analise, setAnalise] = useState('');
     const [copied, setCopied] = useState(false);
-    const [downloadingPDF, setDownloadingPDF] = useState(false);
-    
-    // History & Tabs
     const [activeTab, setActiveTab] = useState<'novo' | 'historico'>('novo');
     const [history, setHistory] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
-
+    const [downloadingPDF, setDownloadingPDF] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
     const [pdfSettings, setPdfSettings] = useState({
         logo: '/logo-original-si.png',
-        footer: 'Análise gerada pelo App Profissão do Futuro.'
+        footer: 'Análise gerada pelo App Profissão do Futuro.',
+        filename: 'Analise_Roteiro'
     });
 
     useEffect(() => {
@@ -98,7 +58,8 @@ export default function AnalisePage() {
                 const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
                 setPdfSettings({
                     logo: parsed.logo_url || '/logo-original-si.png',
-                    footer: parsed.footer_analise || parsed.footer_roteiro || 'Análise gerada pelo App Profissão do Futuro.'
+                    footer: parsed.footer_analise || parsed.footer_roteiro || 'Análise gerada pelo App Profissão do Futuro.',
+                    filename: parsed.filename_analise || 'Analise_Roteiro'
                 });
             }
         } catch (e) { /* settings not initialized */ }
@@ -130,12 +91,13 @@ export default function AnalisePage() {
     }, [activeTab, profile]);
 
     const handleAnalyze = async () => {
+        if (!roteiro.trim()) return;
         setGenerating(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();
             const res = await fetch('/api/ai/analise', {
                 method: 'POST',
-                headers: {
+                headers: { 
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session?.access_token}`
                 },
@@ -149,8 +111,10 @@ export default function AnalisePage() {
                     await supabase.from('profiles').update({
                         ai_tools_used: (curr?.ai_tools_used || 0) + 1
                     }).eq('id', profile.id);
+
                     await supabase.from('ai_content_history').insert([{
-                        user_id: profile.id, tool_type: 'analise',
+                        user_id: profile.id,
+                        tool_type: 'analise',
                         input_data: { roteiro, plataforma, objetivo },
                         output_content: data.analise
                     }]);
@@ -163,25 +127,11 @@ export default function AnalisePage() {
         }
     };
 
-    const handleNext = () => {
-        if (currentStep < STEPS.length - 1) {
-            setCurrentStep(currentStep + 1);
-        } else {
-            handleAnalyze();
-        }
-    };
-
-    const handleBack = () => {
-        if (currentStep > 0) setCurrentStep(currentStep - 1);
-    };
-
     const handleReset = () => {
         setRoteiro('');
         setPlataforma('');
         setObjetivo('');
         setAnalise('');
-        setCurrentStep(0);
-        setActiveTab('novo');
     };
 
     const copyToClipboard = () => {
@@ -197,21 +147,17 @@ export default function AnalisePage() {
             const html2pdf = (await import('html2pdf.js')).default;
             const opt = {
                 margin: 15,
-                filename: `Analise_Roteiro_${new Date().getTime()}.pdf`,
+                filename: `${pdfSettings.filename}_${new Date().getTime()}.pdf`,
                 image: { type: 'jpeg' as const, quality: 0.98 },
                 html2canvas: { scale: 2, useCORS: true, windowWidth: 794, letterRendering: true },
                 jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
             };
             await html2pdf().set(opt).from(contentRef.current).save();
-        } catch (e) { console.error('PDF Error:', e); }
-        finally { setDownloadingPDF(false); }
-    };
-
-    const canProceed = () => {
-        if (currentStep === 0) return !!(roteiro?.toString().trim());
-        if (currentStep === 1) return !!(plataforma?.toString().trim());
-        if (currentStep === 2) return !!(objetivo?.toString().trim());
-        return true;
+        } catch (e) {
+            console.error('PDF Error:', e);
+        } finally {
+            setDownloadingPDF(false);
+        }
     };
 
     if (loading || themeLoading) return null;
@@ -221,18 +167,18 @@ export default function AnalisePage() {
             <main className="flex-1 p-4 lg:p-8 flex flex-col gap-8 w-full min-w-0">
                 <Header profile={profile} unreadCount={unreadCount} onNotificationToggle={() => setNotificationsOpen(!notificationsOpen)} showProfile={true} notificationsOpen={notificationsOpen} recentMessages={recentMessages} />
 
-                {/* Top Nav */}
+                {/* Back & Actions */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <button onClick={() => router.push('/dashboard/tools')} className={`inline-flex items-center gap-3 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-[#6C5DD3]'} font-bold text-sm uppercase tracking-widest transition-all group w-fit`}>
-                        <div className={`w-10 h-10 rounded-xl ${isDark ? 'bg-white/5 border-white/5' : 'bg-white border-gray-100'} border flex items-center justify-center group-hover:bg-[#6C5DD3]/10 group-hover:border-[#6C5DD3]/20 transition-all`}>
+                        <div className={`w-10 h-10 rounded-xl ${isDark ? 'bg-white/5 border-white/5' : 'bg-white border-gray-100'} border flex items-center justify-center group-hover:bg-[#FF754C]/10 group-hover:border-[#FF754C]/20 transition-all`}>
                             <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
                         </div>
-                        Voltar
+                        Voltar para Ferramentas
                     </button>
 
                     <div className="flex items-center gap-4">
-                        <button onClick={() => setActiveTab('novo')} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm transition-all ${activeTab === 'novo' ? 'bg-[#FF754C] text-white shadow-lg shadow-[#FF754C]/30' : isDark ? 'bg-white/5 text-gray-400 hover:text-white' : 'bg-gray-100 text-gray-500 hover:text-gray-900'}`}>
-                            <Plus size={18} /> Novo
+                        <button onClick={() => { handleReset(); setActiveTab('novo'); }} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm transition-all ${activeTab === 'novo' ? 'bg-[#FF754C] text-white shadow-lg shadow-[#FF754C]/30' : isDark ? 'bg-white/5 text-gray-400 hover:text-white' : 'bg-gray-100 text-gray-500 hover:text-gray-900'}`}>
+                            <Plus size={18} /> Nova Análise
                         </button>
                         <button onClick={() => setActiveTab('historico')} className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm transition-all ${activeTab === 'historico' ? 'bg-[#FF754C] text-white shadow-lg shadow-[#FF754C]/30' : isDark ? 'bg-white/5 text-gray-400 hover:text-white' : 'bg-gray-100 text-gray-500 hover:text-gray-900'}`}>
                             <History size={18} /> Histórico
@@ -271,199 +217,156 @@ export default function AnalisePage() {
                             </div>
                         )}
                     </div>
-                ) : !analise && !generating ? (
-                    /* ===== TRIAGE FLOW ===== */
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        {/* Steps Sidebar */}
-                        <div className="lg:col-span-4 space-y-8">
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-[#FF754C] font-black text-[10px] uppercase tracking-[0.4em]">
-                                    <Sparkles size={12} />
-                                    Ferramenta de IA
-                                </div>
-                                <h1 className={`text-4xl lg:text-5xl font-extrabold tracking-tight ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>
-                                    Análise de <span className="text-[#FF754C]">Roteiro</span>
-                                </h1>
-                            </div>
-
-                            <div className="space-y-4">
-                                {STEPS.map((step, i) => (
-                                    <div key={step.id} className="flex items-center gap-4 group">
-                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold transition-all duration-300 ${
-                                            i === currentStep 
-                                                ? 'bg-[#FF754C] text-white shadow-lg shadow-[#FF754C]/40 scale-110' 
-                                                : i < currentStep 
-                                                    ? 'bg-green-500/20 text-green-500' 
-                                                    : isDark ? 'bg-white/5 text-gray-500' : 'bg-gray-100 text-gray-400'
-                                        }`}>
-                                            {i < currentStep ? <Check size={20} /> : i + 1}
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className={`text-sm font-bold ${i === currentStep ? (isDark ? 'text-white' : 'text-[#1B1D21]') : 'text-gray-500'}`}>{step.title}</p>
-                                            <p className="text-[11px] text-gray-400 font-medium">{step.description}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Question Card */}
-                        <div className="lg:col-span-8">
-                            <div className={`p-8 lg:p-12 rounded-[3rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100 shadow-xl shadow-gray-200/50'} min-h-[500px] flex flex-col`}>
-                                <div className="flex-1 space-y-8">
-                                    <div className="space-y-4">
-                                        <div className={`w-16 h-16 rounded-3xl flex items-center justify-center ${isDark ? 'bg-white/5' : 'bg-[#FF754C]/5'}`}>
-                                            {(() => {
-                                                const Icon = STEPS[currentStep].icon;
-                                                return <Icon size={32} className="text-[#FF754C]" />;
-                                            })()}
-                                        </div>
-                                        <div className="space-y-2">
-                                            <h2 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>
-                                                {STEPS[currentStep].title}
-                                            </h2>
-                                            <p className="text-gray-400 font-medium">Preencha os dados abaixo para continuar</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Inputs baseados no Step */}
-                                    <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-                                        {currentStep === 0 && (
-                                            <div className="space-y-4">
-                                                <textarea
-                                                    value={roteiro}
-                                                    onChange={(e) => setRoteiro(e.target.value)}
-                                                    placeholder="Cole o roteiro completo aqui..."
-                                                    className={`w-full ${isDark ? 'bg-white/5 border-white/10 text-white placeholder-gray-600' : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400'} border rounded-3xl p-6 h-64 text-base font-medium outline-none focus:ring-4 focus:ring-[#FF754C]/20 transition-all resize-none`}
-                                                />
-                                                <div className="flex justify-between px-2">
-                                                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Cole seu roteiro acima</span>
-                                                    <span className="text-[10px] text-gray-500 font-bold">{roteiro.length} caracteres</span>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {currentStep === 1 && (
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                {['Instagram', 'TikTok', 'YouTube', 'Stories', 'Geral'].map(opt => (
-                                                    <button key={opt} onClick={() => setPlataforma(opt)} className={`p-6 rounded-3xl border-2 text-left transition-all ${plataforma === opt ? 'border-[#FF754C] bg-[#FF754C]/5' : isDark ? 'border-white/5 bg-white/5 hover:bg-white/10' : 'border-gray-100 bg-gray-50 hover:bg-gray-100'}`}>
-                                                        <div className={`w-10 h-10 rounded-xl mb-4 flex items-center justify-center ${plataforma === opt ? 'bg-[#FF754C] text-white' : 'bg-gray-200 text-gray-500'}`}>
-                                                            {opt[0]}
-                                                        </div>
-                                                        <p className={`font-bold ${plataforma === opt ? (isDark ? 'text-white' : 'text-[#1B1D21]') : 'text-gray-500'}`}>{opt}</p>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        {currentStep === 2 && (
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                {['Vendas', 'Engajamento', 'Autoridade', 'Captar Leads', 'Geral'].map(opt => (
-                                                    <button key={opt} onClick={() => setObjetivo(opt)} className={`p-6 rounded-3xl border-2 text-left transition-all ${objetivo === opt ? 'border-[#FF754C] bg-[#FF754C]/5' : isDark ? 'border-white/5 bg-white/5 hover:bg-white/10' : 'border-gray-100 bg-gray-50 hover:bg-gray-100'}`}>
-                                                        <div className={`w-10 h-10 rounded-xl mb-4 flex items-center justify-center ${objetivo === opt ? 'bg-[#FF754C] text-white' : 'bg-gray-200 text-gray-500'}`}>
-                                                            {opt[0]}
-                                                        </div>
-                                                        <p className={`font-bold ${objetivo === opt ? (isDark ? 'text-white' : 'text-[#1B1D21]') : 'text-gray-500'}`}>{opt}</p>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center justify-between pt-8 border-t border-gray-100/10 mt-8">
-                                    <button onClick={handleBack} disabled={currentStep === 0} className={`px-8 py-4 rounded-2xl font-bold text-sm uppercase tracking-widest transition-all ${currentStep === 0 ? 'opacity-0 pointer-events-none' : isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-[#1B1D21]'}`}>
-                                        Anterior
-                                    </button>
-                                    <button onClick={handleNext} disabled={!canProceed()} className={`px-10 py-5 rounded-2xl bg-gradient-to-r from-[#FF754C] to-[#FF5C28] text-white font-bold text-sm uppercase tracking-widest flex items-center gap-3 shadow-xl shadow-[#FF754C]/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-30 disabled:grayscale`}>
-                                        {currentStep === STEPS.length - 1 ? 'Analisar Roteiro' : 'Próximo'}
-                                        <ChevronRight size={18} />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 ) : (
-                    /* ===== LOADING OR RESULT ===== */
-                    <div className="animate-in fade-in zoom-in-95 duration-500">
-                        {generating ? (
-                            <div className={`p-10 lg:p-20 rounded-[3rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100 shadow-xl shadow-gray-200/50'} flex flex-col items-center justify-center gap-12 text-center min-h-[600px]`}>
-                                <div className="relative">
-                                    <div className="w-32 h-32 border-4 border-[#FF754C]/10 rounded-full animate-ping absolute inset-0"></div>
-                                    <div className="w-32 h-32 border-t-4 border-[#FF754C] rounded-full animate-spin relative z-10"></div>
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <Sparkles className="text-[#FF754C] w-12 h-12 animate-pulse" />
+                    <>
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-[#FF754C] font-black text-[10px] uppercase tracking-[0.4em]">
+                                <Eye size={12} />
+                                Análise Inteligente
+                            </div>
+                            <h1 className={`text-4xl lg:text-5xl font-extrabold tracking-tight ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>
+                                Análise de <span className="text-[#FF754C]">Roteiro</span>
+                            </h1>
+                            <p className="text-gray-400 font-medium max-w-lg">
+                                Cole seu roteiro abaixo e receba uma análise detalhada com nota, pontos fortes, melhorias e uma versão otimizada.
+                            </p>
+                        </div>
+
+                        {!analise && !generating && (
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500">
+                                <div className="lg:col-span-8">
+                                    <div className={`p-8 rounded-[2.5rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'} space-y-6 shadow-sm`}>
+                                        <div className="space-y-3">
+                                            <label className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Cole seu roteiro aqui *</label>
+                                            <textarea
+                                                value={roteiro}
+                                                onChange={(e) => setRoteiro(e.target.value)}
+                                                placeholder="Cole o roteiro completo que você quer analisar..."
+                                                rows={14}
+                                                className={`w-full ${isDark ? 'bg-white/5 border-white/10 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-200 placeholder-gray-400'} border rounded-2xl px-6 py-5 text-sm font-medium outline-none focus:ring-2 focus:ring-[#FF754C]/40 transition-all resize-none shadow-inner`}
+                                            />
+                                            <p className="text-[10px] text-gray-400 font-medium">{roteiro.length} caracteres</p>
+                                        </div>
+
+                                        <button
+                                            onClick={handleAnalyze}
+                                            disabled={generating || !roteiro.trim()}
+                                            className="w-full py-6 rounded-2xl bg-gradient-to-r from-[#FF754C] to-[#FF5722] text-white font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:scale-[1.01] active:scale-[0.99] transition-all shadow-xl shadow-[#FF754C]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {generating ? <Loader2 className="w-5 h-5 animate-spin" /> : <><BarChart3 size={20} /> Analisar Roteiro</>}
+                                        </button>
                                     </div>
                                 </div>
-                                <div className="space-y-4 max-w-sm">
-                                    <h3 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>Analisando...</h3>
-                                    <p className="text-gray-400 font-medium leading-relaxed">Nossa IA está avaliando cada detalhe do seu roteiro para criar a melhor análise possível.</p>
+
+                                <div className="lg:col-span-4 space-y-6">
+                                    <div className={`p-6 rounded-[2rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'} space-y-4 shadow-sm`}>
+                                        <label className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Plataforma (opcional)</label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {['Instagram', 'TikTok', 'YouTube', 'Stories'].map(opt => (
+                                                <button key={opt} onClick={() => setPlataforma(opt)} className={`px-4 py-3 rounded-xl text-xs font-bold transition-all border ${plataforma === opt ? 'bg-[#FF754C] border-[#FF754C] text-white shadow-lg shadow-[#FF754C]/20' : `${isDark ? 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-[#FF754C]/5'}`}`}>
+                                                    {opt}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className={`p-6 rounded-[2rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'} space-y-4 shadow-sm`}>
+                                        <label className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Objetivo (opcional)</label>
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {['Vendas', 'Engajamento', 'Autoridade', 'Leads'].map(opt => (
+                                                <button key={opt} onClick={() => setObjetivo(opt)} className={`px-4 py-3 rounded-xl text-xs font-bold transition-all border ${objetivo === opt ? 'bg-[#FF754C] border-[#FF754C] text-white shadow-lg shadow-[#FF754C]/20' : `${isDark ? 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-[#FF754C]/5'}`}`}>
+                                                    {opt}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className={`p-6 rounded-[2rem] border ${isDark ? 'bg-gradient-to-br from-[#FF754C]/5 to-transparent border-[#FF754C]/10' : 'bg-[#FF754C]/5 border-[#FF754C]/10'}`}>
+                                        <h4 className={`font-bold text-sm mb-2 ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>💡 Dica</h4>
+                                        <p className="text-xs text-gray-400 leading-relaxed">Cole seu roteiro completo, incluindo hooks, CTAs e indicações de cena. Quanto mais contexto, melhor a análise.</p>
+                                    </div>
                                 </div>
                             </div>
-                        ) : (
-                            <div className={`p-8 lg:p-12 rounded-[3rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100 shadow-xl shadow-gray-200/50'} space-y-10`}>
-                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-2 text-[#FF754C] font-black text-[10px] uppercase tracking-[0.4em]">
-                                            <Check size={12} className="text-green-500" />
-                                            Análise Concluída
-                                        </div>
-                                        <h2 className={`text-4xl font-extrabold ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>Seu <span className="text-[#FF754C]">Resultado</span></h2>
-                                    </div>
-                                    <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                                        <button onClick={downloadPDF} disabled={downloadingPDF} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all border ${isDark ? 'bg-white/5 border-white/10 hover:bg-white/10 text-gray-300' : 'bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-700'} ${downloadingPDF ? 'opacity-50' : ''}`}>
-                                            {downloadingPDF ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-                                            <span className="hidden sm:inline">PDF</span>
-                                        </button>
-                                        <button onClick={copyToClipboard} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all border ${isDark ? 'bg-white/5 border-white/10 hover:bg-[#FF754C] hover:border-[#FF754C] hover:text-white text-gray-300' : 'bg-gray-50 border-gray-200 hover:bg-[#FF754C] hover:text-white text-gray-700'}`}>
-                                            {copied ? <Check size={16} /> : <Copy size={16} />}
-                                            <span className="hidden sm:inline">{copied ? 'Copiado' : 'Copiar'}</span>
-                                        </button>
-                                        <button onClick={handleReset} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-[#FF754C] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#e66a45] transition-all shadow-xl shadow-[#FF754C]/20">
-                                            <Plus size={18} />
-                                            <span>Novo</span>
-                                        </button>
+                        )}
+
+                        {generating && (
+                            <div className={`p-10 lg:p-20 rounded-[3rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100 shadow-xl shadow-gray-200/50'} flex flex-col items-center justify-center gap-10 text-center min-h-[500px] animate-in zoom-in-95 duration-500`}>
+                                <div className="relative">
+                                    <div className="w-24 h-24 border-4 border-[#FF754C]/10 rounded-full animate-ping absolute inset-0"></div>
+                                    <div className="w-24 h-24 border-t-4 border-[#FF754C] rounded-full animate-spin relative z-10"></div>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <BarChart3 className="text-[#FF754C] w-10 h-10 animate-pulse" />
                                     </div>
                                 </div>
-
-                                <div className={`p-8 lg:p-12 rounded-[2.5rem] border ${isDark ? 'bg-black/40 border-white/5' : 'bg-gray-50/50 border-gray-100'}`}>
-                                    <div className={`prose max-w-none ${isDark ? 'prose-invert' : ''} prose-orange font-medium leading-relaxed
-                                        [&_h1]:text-[#FF754C] [&_h2]:text-[#FF754C] [&_h3]:text-[#FF754C]
-                                        [&_strong]:text-[#FF754C] [&_strong]:font-bold
-                                        text-lg`}>
-                                        <ReactMarkdown>{analise}</ReactMarkdown>
-                                    </div>
+                                <div className="space-y-4">
+                                    <h3 className={`text-2xl font-black uppercase tracking-widest text-[#FF754C]`}>Analisando Roteiro</h3>
+                                    <p className="text-gray-400 font-medium max-w-xs mx-auto">Buscando ganchos, métricas e oportunidades de ouro...</p>
                                 </div>
+                            </div>
+                        )}
 
-                                {/* Hidden PDF Container */}
-                                <div style={{ display: 'none', position: 'absolute', top: '-9999px' }}>
-                                    <div ref={contentRef} style={{ width: '794px', padding: '60px', background: 'white', color: '#000000', fontFamily: 'sans-serif' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', borderBottom: '2px solid #FF754C', paddingBottom: '20px' }}>
-                                            <h1 style={{ color: '#FF754C', fontSize: '28px', fontWeight: '900', margin: 0 }}>ANÁLISE DE ROTEIRO</h1>
-                                            {pdfSettings.logo && <img src={pdfSettings.logo} crossOrigin="anonymous" style={{ height: '40px' }} />}
+                        {analise && !generating && (
+                            <div className="animate-in fade-in zoom-in-95 duration-500 space-y-8">
+                                <div className={`p-10 rounded-[2.5rem] border ${isDark ? 'bg-[#1A1D1F] border-white/5' : 'bg-white border-gray-100'} space-y-8 shadow-sm`}>
+                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+                                        <div className="space-y-1">
+                                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#FF754C] block mb-2">Análise Concluída</span>
+                                            <h3 className={`text-3xl font-extrabold ${isDark ? 'text-white' : 'text-[#1B1D21]'}`}>Seu <span className="text-[#FF754C]">Resultado</span></h3>
                                         </div>
-                                        <div style={{ fontSize: '14px', lineHeight: '1.8', color: '#333' }}>
-                                            <ReactMarkdown
-                                                components={{
-                                                    h1: ({node, ...props}) => <h1 style={{ color: '#FF754C', fontSize: '22px', fontWeight: 'bold', marginTop: '30px', borderLeft: '4px solid #FF754C', paddingLeft: '15px' }} {...props} />,
-                                                    h2: ({node, ...props}) => <h2 style={{ color: '#FF754C', fontSize: '18px', fontWeight: 'bold', marginTop: '25px' }} {...props} />,
-                                                    p: ({node, ...props}) => <p style={{ marginBottom: '15px' }} {...props} />,
-                                                    strong: ({node, ...props}) => <strong style={{ color: '#FF754C', fontWeight: 'bold' }} {...props} />,
-                                                    ul: ({node, ...props}) => <ul style={{ marginLeft: '25px', marginBottom: '20px' }} {...props} />,
-                                                    li: ({node, ...props}) => <li style={{ marginBottom: '8px' }} {...props} />,
-                                                }}
-                                            >
-                                                {analise}
-                                            </ReactMarkdown>
+                                        <div className="flex items-center gap-3 w-full sm:w-auto">
+                                            <button onClick={downloadPDF} disabled={downloadingPDF} className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all border ${isDark ? 'bg-white/5 border-white/10 hover:bg-white/10 text-gray-300' : 'bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-700'}`}>
+                                                {downloadingPDF ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                                                <span>PDF</span>
+                                            </button>
+                                            <button onClick={copyToClipboard} className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all border ${isDark ? 'bg-white/5 border-white/10 hover:bg-[#FF754C] hover:border-[#FF754C] hover:text-white text-gray-300' : 'bg-gray-50 border-gray-200 hover:bg-[#FF754C] hover:text-white text-gray-700'}`}>
+                                                {copied ? <Check size={16} /> : <Copy size={16} />}
+                                                <span>{copied ? 'Copiado!' : 'Copiar'}</span>
+                                            </button>
+                                            <button onClick={handleReset} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-[#FF754C] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#e16843] transition-all shadow-xl shadow-[#FF754C]/20">
+                                                <Plus size={18} /> Novo
+                                            </button>
                                         </div>
-                                        <div style={{ marginTop: '60px', paddingTop: '20px', borderTop: '1px solid #eee', textAlign: 'center' }}>
-                                            <p style={{ fontSize: '10px', color: '#999' }}>{pdfSettings.footer}</p>
+                                    </div>
+
+                                    <div className={`p-10 rounded-[2rem] border ${isDark ? 'bg-black/30 border-white/5' : 'bg-gray-50 border-gray-100 shadow-inner'}`}>
+                                        <div className={`prose max-w-none ${isDark ? 'prose-invert' : ''} prose-orange font-medium leading-relaxed
+                                            [&_h1]:text-[#FF754C] [&_h2]:text-[#FF754C] [&_h3]:text-[#FF754C]
+                                            [&_strong]:text-[#FF754C] [&_strong]:font-extrabold
+                                            text-base lg:text-lg`}>
+                                            <ReactMarkdown>{analise}</ReactMarkdown>
+                                        </div>
+                                    </div>
+
+                                    {/* PDF Container */}
+                                    <div style={{ display: 'none', position: 'absolute', top: '-9999px' }}>
+                                        <div ref={contentRef} style={{ width: '794px', padding: '60px', background: 'white', color: '#000000', fontFamily: 'sans-serif' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', borderBottom: '2px solid #FF754C', paddingBottom: '20px' }}>
+                                                <h1 style={{ color: '#FF754C', fontSize: '28px', fontWeight: '900', margin: 0 }}>ANÁLISE DE ROTEIRO</h1>
+                                                {pdfSettings.logo && <img src={pdfSettings.logo} crossOrigin="anonymous" style={{ height: '40px' }} />}
+                                            </div>
+                                            <div style={{ fontSize: '14px', lineHeight: '1.8', color: '#333' }}>
+                                                <ReactMarkdown
+                                                    components={{
+                                                        h1: ({node, ...props}) => <h1 style={{ color: '#FF754C', fontSize: '22px', fontWeight: 'bold', marginTop: '30px', borderLeft: '4px solid #FF754C', paddingLeft: '15px' }} {...props} />,
+                                                        h2: ({node, ...props}) => <h2 style={{ color: '#FF754C', fontSize: '18px', fontWeight: 'bold', marginTop: '25px' }} {...props} />,
+                                                        p: ({node, ...props}) => <p style={{ marginBottom: '15px' }} {...props} />,
+                                                        strong: ({node, ...props}) => <strong style={{ color: '#FF754C', fontWeight: 'bold' }} {...props} />,
+                                                        ul: ({node, ...props}) => <ul style={{ marginLeft: '25px', marginBottom: '20px' }} {...props} />,
+                                                        li: ({node, ...props}) => <li style={{ marginBottom: '8px' }} {...props} />,
+                                                    }}
+                                                >
+                                                    {analise}
+                                                </ReactMarkdown>
+                                            </div>
+                                            <div style={{ marginTop: '60px', paddingTop: '20px', borderTop: '1px solid #eee', textAlign: 'center' }}>
+                                                <p style={{ fontSize: '10px', color: '#999' }}>{pdfSettings.footer}</p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         )}
-                    </div>
+                    </>
                 )}
             </main>
         </div>

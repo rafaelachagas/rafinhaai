@@ -48,7 +48,8 @@ export default function RoteiroPage() {
     const contentRef = useRef<HTMLDivElement>(null);
     const [pdfSettings, setPdfSettings] = useState({
         logo: '/logo-original-si.png',
-        footer: 'Roteiro gerado pelo App Profissão do Futuro.'
+        footer: 'Roteiro gerado pelo App Profissão do Futuro.',
+        filename: 'Roteiro_Personalizado'
     });
 
     useEffect(() => {
@@ -73,8 +74,9 @@ export default function RoteiroPage() {
             if (data?.value) {
                 const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
                 setPdfSettings({
-                    logo: parsed.logo_url !== undefined ? parsed.logo_url : '/logo-original-si.png',
-                    footer: parsed.footer_roteiro || 'Roteiro gerado pelo App Profissão do Futuro.'
+                    logo: parsed.logo_url || '/logo-original-si.png',
+                    footer: parsed.footer_roteiro || 'Roteiro gerado pelo App Profissão do Futuro.',
+                    filename: parsed.filename_roteiro || 'Roteiro_Personalizado'
                 });
             }
         } catch (e) {
@@ -186,22 +188,16 @@ export default function RoteiroPage() {
         setDownloadingPDF(true);
         try {
             const html2pdf = (await import('html2pdf.js')).default;
-            const element = contentRef.current;
-            if (element.parentElement) element.parentElement.style.display = 'block';
-            
             const opt = {
-                margin:       [10, 0, 10, 0] as [number, number, number, number],
-                filename:     'Roteiro_Gerado_IA.pdf',
-                image:        { type: 'jpeg' as const, quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true, windowWidth: 794, letterRendering: true },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
-                pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+                margin: 15,
+                filename: `${pdfSettings.filename}_${new Date().getTime()}.pdf`,
+                image: { type: 'jpeg' as const, quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, windowWidth: 794, letterRendering: true },
+                jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
             };
-            
-            await html2pdf().set(opt).from(element).save();
-            if (element.parentElement) element.parentElement.style.display = 'none';
-        } catch (error) {
-            console.error('Erro ao gerar PDF', error);
+            await html2pdf().set(opt).from(contentRef.current).save();
+        } catch (e) {
+            console.error('PDF Error:', e);
         } finally {
             setDownloadingPDF(false);
         }

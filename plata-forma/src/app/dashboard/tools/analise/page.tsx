@@ -329,10 +329,12 @@ export default function AnalisePage() {
                                     </div>
 
                                     <div className={`p-10 rounded-[2rem] border ${isDark ? 'bg-black/30 border-white/5' : 'bg-gray-50 border-gray-100 shadow-inner'}`}>
-                                        <div className={`prose max-w-none ${isDark ? 'prose-invert' : ''} prose-orange font-medium leading-relaxed
-                                            [&_h1]:text-[#FF754C] [&_h2]:text-[#FF754C] [&_h3]:text-[#FF754C]
-                                            [&_strong]:text-[#FF754C] [&_strong]:font-extrabold
-                                            text-base lg:text-lg`}>
+                                        <div className={`prose max-w-none ${isDark ? 'prose-invert' : ''} font-medium leading-relaxed
+                                            [&_h1]:text-current [&_h1]:font-black [&_h1]:mb-6
+                                            [&_h2]:text-current [&_h2]:font-bold [&_h2]:mb-4
+                                            [&_h3]:text-current [&_h3]:font-bold [&_h3]:mb-3
+                                            [&_strong]:text-current [&_strong]:font-bold
+                                            text-base lg:text-lg ${isDark ? 'text-gray-300' : 'text-[#1B1D21]'}`}>
                                             <ReactMarkdown>{analise}</ReactMarkdown>
                                         </div>
                                     </div>
@@ -344,13 +346,13 @@ export default function AnalisePage() {
                                                 <h1 style={{ color: '#FF754C', fontSize: '28px', fontWeight: '900', margin: 0 }}>ANÁLISE DE ROTEIRO</h1>
                                                 {pdfSettings.logo && <img src={pdfSettings.logo} crossOrigin="anonymous" style={{ height: '40px' }} />}
                                             </div>
-                                            <div style={{ fontSize: '14px', lineHeight: '1.8', color: '#333' }}>
+                                            <div style={{ fontSize: '14px', lineHeight: '1.8', color: '#1a1a1a' }}>
                                                 <ReactMarkdown
                                                     components={{
-                                                        h1: ({node, ...props}) => <h1 style={{ color: '#FF754C', fontSize: '22px', fontWeight: 'bold', marginTop: '30px', borderLeft: '4px solid #FF754C', paddingLeft: '15px' }} {...props} />,
-                                                        h2: ({node, ...props}) => <h2 style={{ color: '#FF754C', fontSize: '18px', fontWeight: 'bold', marginTop: '25px' }} {...props} />,
+                                                        h1: ({node, ...props}) => <h1 style={{ color: '#000000', fontSize: '22px', fontWeight: 'bold', marginTop: '30px', borderLeft: '4px solid #FF754C', paddingLeft: '15px' }} {...props} />,
+                                                        h2: ({node, ...props}) => <h2 style={{ color: '#000000', fontSize: '18px', fontWeight: 'bold', marginTop: '25px' }} {...props} />,
                                                         p: ({node, ...props}) => <p style={{ marginBottom: '15px' }} {...props} />,
-                                                        strong: ({node, ...props}) => <strong style={{ color: '#FF754C', fontWeight: 'bold' }} {...props} />,
+                                                        strong: ({node, ...props}) => <strong style={{ color: '#000000', fontWeight: 'bold' }} {...props} />,
                                                         ul: ({node, ...props}) => <ul style={{ marginLeft: '25px', marginBottom: '20px' }} {...props} />,
                                                         li: ({node, ...props}) => <li style={{ marginBottom: '8px' }} {...props} />,
                                                     }}
